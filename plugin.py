@@ -31,6 +31,17 @@ import os
 # full animation
 # fancier stuff (moving camra/lights or fancy materials (shadows, reflection, ambient and global illumination)
 
+bl_info = {
+        "name": "Chrono::Render plugin",
+        "description": "TODO",
+        "author": "Daniel <Daphron> Kaczmarek",
+        "version": (0, 2),
+        "blender": (2, 67, 1), #TODO: find minimum version
+        "location": "TODO",
+        "warning": "",
+        "wiki_url": "TODO",
+        "tracker_url":"TODO",
+        "category": "Import-Export"}
 
 
 class Object:
@@ -57,8 +68,8 @@ class Object:
         return "<{:d},{:f},{:f},{:f},{:f},{:f},{:f},{:f},{:f},{:f},{:f}>".format(self.kind, self.x, self.y, self.z, self.q0, self.q1, self.q2, self.q3, self.q3, self.ep[1], self.ep[2], self.ep[3])
 
     def addToBlender(self):
-        #TODO: numbers are stupid, use strings and see if guesses for what the 
-        # numbers represent are correct
+        if self.index % 100 == 0:
+            print("index = {}".format(self.index))
         # Cube
         if self.kind == "Cube":
             #ep[0] = length of one side
@@ -79,7 +90,7 @@ class Object:
             bpy.ops.mesh.primitive_uv_sphere_add(size=self.ep[0], location=(self.x, self.y, self.z), rotation=(self.euler.x, self.euler.y, self.euler.z))
 
             #The right way?
-            bpy.ops.transform.resize(value=(1,1,self.ep[1]/self.ep[0]))
+            bpy.ops.transform.resize(value=(1,0.5,5))
 
 # 
 #             #TODO: this can't even be the right approach... [1,1,1] resizes...
@@ -165,12 +176,49 @@ def export(fin, filename, objects, proxyObjects):
         fout.write("Surface \"{}\"\n".format(surface))
         fout.write("ObjectEnd\n")
 
+# class OBJECT_PT_pingpong(bpy.types.Panel):
+#     bl_space_type = "VIEW_3D"
+#     bl_region_type = "TOOLS"
+#     bl_context = "object"
+#     bl_label = "Ping Pong"
+# 
+#     display = 0
+# 
+#     def draw_header(self, context):
+#         layout = self.layout
+#         layout.label(text="HEADER", icon="PHYSICS")
+# 
+#     def draw(self, context):
+#         layout = self.layout
+#         row = layout.row()
+#         split = row.split(percentage=0.5)
+#         colL = split.column()
+#         colR = split.column()
+# 
+#         if self.display == 0:
+#             colL.operator("pipo", text="Ping")
+#         else:
+#             colR.operator("pipo", text="Pong")
+# 
+# 
+# class OBJECT_OT_pingpong(bpy.types.Operator):
+#     bl_label = "PingPong operator"
+#     bl_idname = "pipo"
+#     bl_description = "Move the ball"
+# 
+#     def invoke(self, context, event):
+#         import bpy
+# 
+#         self.report("INFO", "Moving the ball")
+#         bpy.types.OBJECT_PT_pingpong.display = 1 - by.types.OBJECT_PT_pingpong.display
+#         return {"FINISHED"}
+# 
 
 def main():
     # print(os.getcwd())
-    filename = "/home/xeno/repos/sbel/blender_input_test.dat"
-    export_filename = "/home/xeno/repos/sbel/blender_output_test.md"
-    individualObjectsIndicies = range(1,8000) 
+    filename = "/home/xeno/repos/blender-plugin/plugins/blender/blender_input_test.dat"
+    export_filename = "/home/xeno/repos/blender-plugin/plugins/blender/blender_output_test.md"
+    individualObjectsIndicies = range(1,7900, 100) 
 
     objects = []
     proxyObjects = []
@@ -180,6 +228,8 @@ def main():
     for i, line in enumerate(fin):
         if i+1 in individualObjectsIndicies:
             objects.append(Object(line.split(","), i+1))
+            if i % 100 == 0:
+                print("Object {}".format(i))
 
         else:
             data = line.split(",")
@@ -189,16 +239,20 @@ def main():
                     obj.indicies.append(i+1)
                     proxyExists = True
             if not proxyExists:
+                print("New Proxy line num {}".format(i))
                 proxyObjects.append(ProxyObject(data, [i+1]))
         
 
     configInitialScene()
+    print("Here")
 
     
     for obj in objects:
         obj.addToBlender()
     for obj in proxyObjects:
         obj.addToBlender()
+
+    print("objects added")
         
 
     export(fin, export_filename, objects, proxyObjects)
@@ -206,5 +260,7 @@ def main():
     #TODO: run only when export button hit!
     fin.close()
 
+
 if __name__ == "__main__":
+    # bpy.utils.register_module(__name__)
     main()
