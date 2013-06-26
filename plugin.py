@@ -47,6 +47,11 @@ bl_info = {
         "tracker_url":"TODO",
         "category": "Import-Export"}
 
+class Storage:
+    def __init__(self, fin, objects, proxyObjects):
+        self.fin = fin
+        self.objects = objects
+        self.proxyObjects = proxyObjects
 
 class Object:
     def __init__(self, data, index):
@@ -95,15 +100,7 @@ class Object:
 
             #The right way?
             bpy.ops.transform.resize(value=(1,0.5,5))
-
-# 
-#             #TODO: this can't even be the right approach... [1,1,1] resizes...
-#             matrix = self.quat.to_matrix() #rotation matrix
-#             # vec = mathutils.Vector((1,1,self.ep[2]/self.ep[1])) 
-#             vec = mathutils.Vector((1,1,1)) 
-#             rot = vec * matrix #TODO: right order?
-#             bpy.ops.transform.resize(value=rot)
-# 
+ 
         bpy.context.active_object["index"] = self.index
         bpy.context.active_object.name = "Line " + str(self.index) + " object"
         #object.get("index") to get the value
@@ -111,9 +108,11 @@ class Object:
 
 class ProxyObject(Object):
     def __init__(self, data, indicies):
-        """ data is a line of the input file, indicies is a list of lines from the file that this obj represents
-            whichAttribute is a num which specifies the column of data on the line that decides proxyObjs and attribute
-            tells the specifica attribute which this proxyObj is for (sphere, cube...) """
+        """ data is a line of the input file, indicies is a list of lines 
+        from the file that this obj represents whichAttribute is a num which 
+        specifies the column of data on the line that decides proxyObjs and 
+        attribute tells the specifica attribute which this proxyObj is for 
+        (sphere, cube...) """
         # print("MAKING PROXY OBJ")
 
         Object.__init__(self, data, indicies[0])
@@ -127,9 +126,9 @@ class ProxyObject(Object):
         bpy.context.active_object["attribute"] = self.attribute
         bpy.context.active_object.name = "Proxy " + self.attribute
 
-
 def configInitialScene():
-    bpy.ops.object.delete()
+    # bpy.ops.object.delete()
+    pass
 
 def export(fin, filename, objects, proxyObjects):
     print("Exporting!")
@@ -180,91 +179,107 @@ def export(fin, filename, objects, proxyObjects):
         fout.write("Surface \"{}\"\n".format(surface))
         fout.write("ObjectEnd\n")
 
-# class OBJECT_PT_pingpong(bpy.types.Panel):
-#     bl_space_type = "VIEW_3D"
-#     bl_region_type = "TOOLS"
-#     bl_context = "object"
-#     bl_label = "Ping Pong"
-# 
-#     display = 0
-# 
-#     def draw_header(self, context):
-#         layout = self.layout
-#         layout.label(text="HEADER", icon="PHYSICS")
-# 
-#     def draw(self, context):
-#         layout = self.layout
-#         row = layout.row()
-#         split = row.split(percentage=0.5)
-#         colL = split.column()
-#         colR = split.column()
-# 
-#         if self.display == 0:
-#             colL.operator("pipo", text="Ping")
-#         else:
-#             colR.operator("pipo", text="Pong")
-# 
-# 
-# class OBJECT_OT_pingpong(bpy.types.Operator):
-#     bl_label = "PingPong operator"
-#     bl_idname = "pipo"
-#     bl_description = "Move the ball"
-# 
-#     def invoke(self, context, event):
-#         import bpy
-# 
-#         self.report("INFO", "Moving the ball")
-#         bpy.types.OBJECT_PT_pingpong.display = 1 - by.types.OBJECT_PT_pingpong.display
-#         return {"FINISHED"}
-# 
+class ImportChronoRender(bpy.types.Operator):
+    """Imports a ChronoRender file."""
+    bl_idname = "import.import_chrono_render"
+    bl_label = "Import ChronoRender"
+    filename = bpy.props.StringProperty(subtype='FILE_PATH')
+    directory = bpy.props.StringProperty(subtype='DIR_PATH')
 
-def main():
-    # print(os.getcwd())
-    filename = "/home/xeno/repos/blender-plugin/plugins/blender/blender_input_test.dat"
-    export_filename = "/home/xeno/repos/blender-plugin/plugins/blender/blender_output_test.md"
-    individualObjectsIndicies = range(1,7900) 
+    def invoke(self, context, event):
+        context.window_manager.fileselect_add(self)
+        return {'RUNNING_MODAL'}
+            
+    def execute(self, context):
+        # filename = "/home/xeno/repos/blender-plugin/plugins/blender/blender_input_test.dat"
+        individualObjectsIndicies = range(1,7900, 100) 
 
-    objects = []
-    proxyObjects = []
+        objects = []
+        proxyObjects = []
 
-    fin = open(filename, "r")
+        filepath = os.path.join(self.directory, self.filename)
 
-    for i, line in enumerate(fin):
-        if i+1 in individualObjectsIndicies:
-            objects.append(Object(line.split(","), i+1))
-            if i % 100 == 0:
-                print("Object {}".format(i))
+        fin = open(filepath, "r")
 
-        else:
-            data = line.split(",")
-            proxyExists = False
-            for obj in proxyObjects:
-                if obj.attribute == data[0]:
-                    obj.indicies.append(i+1)
-                    proxyExists = True
-            if not proxyExists:
-                print("New Proxy line num {}".format(i))
-                # proxyObjects.append(ProxyObject(data, [i+1]))
+        for i, line in enumerate(fin):
+            if i+1 in individualObjectsIndicies:
+                objects.append(Object(line.split(","), i+1))
+                if i % 100 == 0:
+                    print("Object {}".format(i))
+
+            else:
+                data = line.split(",")
+                proxyExists = False
+                for obj in proxyObjects:
+                    if obj.attribute == data[0]:
+                        obj.indicies.append(i+1)
+                        proxyExists = True
+                if not proxyExists:
+                    print("New Proxy line num {}".format(i))
+                    # proxyObjects.append(ProxyObject(data, [i+1]))
+
+        configInitialScene()
+        print("Here")
+
         
+        for obj in objects:
+            obj.addToBlender()
+        for obj in proxyObjects:
+            obj.addToBlender()
 
-    configInitialScene()
-    print("Here")
+        print("objects added")
+        return {'FINISHED'}
 
-    
-    for obj in objects:
-        obj.addToBlender()
-    for obj in proxyObjects:
-        obj.addToBlender()
+def add_importChronoRenderButton(self, context):
+    self.layout.operator(
+            ImportChronoRender.bl_idname,
+            text=ImportChronoRender.__doc__,
+            icon='PLUGIN')
 
-    print("objects added")
-        
+class ExportChronoRender(bpy.types.Operator):
+    """Exports the current scene into an easy to render format for Chrono::Render"""
+    bl_idname = "export.export_chrono_render"
+    bl_label = "Import Chrono::Render"
+    filename = bpy.props.StringProperty(subtype='FILE_PATH')
+    directory = bpy.props.StringProperty(subtype='DIR_PATH')
 
-    export(fin, export_filename, objects, proxyObjects)
+    def invoke(self, context, event):
+        context.window_manager.fileselect_add(self)
+        return {'RUNNING_MODAL'}
 
-    #TODO: run only when export button hit!
-    fin.close()
+    def execute(self, context):
+        # export_filename = "/home/xeno/repos/blender-plugin/plugins/blender/blender_output_test.md"
+        filepath = os.path.join(self.directory, self.filename)
+        print("Export beginning")
+
+        print("Export complete! (not really)")
+        return {'FINISHED'}
+
+def add_exportChronoRenderButton(self, context):
+    self.layout.operator(
+            ExportChronoRender.bl_idname,
+            text=ExportChronoRender.__doc__,
+            icon='PLUGIN')
+
+def register():
+    bpy.utils.register_class(ImportChronoRender)
+    # bpy.types.INFO_MT_file.append(add_object_button)
+    bpy.types.INFO_MT_file_import.append(add_importChronoRenderButton)
+
+    bpy.utils.register_class(ExportChronoRender)
+    bpy.types.INFO_MT_file_export.append(add_exportChronoRenderButton)
+
+# def unregister():
+#     bpy.utils.unregister_class(MoveOperator)
+#     bpy.types.INFO_MT_file_import.remove(add_object_button)
+    #     
+
+    # export(fin, export_filename, objects, proxyObjects)
+
+    # #TODO: run only when export button hit!
+    # fin.close()
 
 
 if __name__ == "__main__":
-    # bpy.utils.register_module(__name__)
-    main()
+    register()
+    # main()
