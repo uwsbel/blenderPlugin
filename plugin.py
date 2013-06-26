@@ -3,6 +3,10 @@ import math
 import mathutils
 import os
 
+#This version of the file will render the test file using blender's rendering engine. To
+# do so simply run this command:
+# blender -P ~/repos/blender-plugin/plugins/blender/plugin.py -o rendered -F JPEG -x 1 -f 1
+
 #TODO: import selectable number of particles from .dat file
 # be able to add materials to it
 # export to renderman/rib?
@@ -218,7 +222,7 @@ def main():
     # print(os.getcwd())
     filename = "/home/xeno/repos/blender-plugin/plugins/blender/blender_input_test.dat"
     export_filename = "/home/xeno/repos/blender-plugin/plugins/blender/blender_output_test.md"
-    individualObjectsIndicies = range(1,7900, 100) 
+    individualObjectsIndicies = range(1,7900) 
 
     objects = []
     proxyObjects = []
@@ -240,7 +244,7 @@ def main():
                     proxyExists = True
             if not proxyExists:
                 print("New Proxy line num {}".format(i))
-                proxyObjects.append(ProxyObject(data, [i+1]))
+                # proxyObjects.append(ProxyObject(data, [i+1]))
         
 
     configInitialScene()
