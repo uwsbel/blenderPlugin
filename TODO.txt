@@ -1,0 +1,2 @@
+Stuff in plugin.py
+Get chronorender's "render" option to be capable of going beyond stdout
