@@ -2,6 +2,7 @@ import bpy
 import math
 import mathutils
 import os
+import yaml
 
 #This version of the file will render the test file using blender's rendering engine. To
 # do so simply run this command:
@@ -47,11 +48,9 @@ bl_info = {
         "tracker_url":"TODO",
         "category": "Import-Export"}
 
-class Storage:
-    def __init__(self, fin, objects, proxyObjects):
-        self.fin = fin
-        self.objects = objects
-        self.proxyObjects = proxyObjects
+fin = ""
+objects = ""
+proxyObjects = ""
 
 class Object:
     def __init__(self, data, index):
@@ -119,18 +118,26 @@ class ProxyObject(Object):
         self.indicies = indicies
         self.attribute = data[0]
         # print(self.attribute)
+        self.color = (0.0, 0.1, 0.9)
+        self.alpha = 1.0
 
     def addToBlender(self):
         # print(self.ep)
         bpy.ops.mesh.primitive_monkey_add(radius=self.ep[0], location=(self.x, self.y, self.z))
         bpy.context.active_object["attribute"] = self.attribute
         bpy.context.active_object.name = "Proxy " + self.attribute
+        self.obj = bpy.context.active_object
+
+    def update(self):
+        """Grabs stuff like color, texture and stores them"""
+        #Color can be diffuse, specular, mirror, and subsurface scattering
+        self.color = (self.obj.active_material.diffuse_color[1], self.obj.active_material.diffuse_color[2] ,self.obj.active_material.diffuse_color[3])
 
 def configInitialScene():
     # bpy.ops.object.delete()
     pass
 
-def export(fin, filename, objects, proxyObjects):
+def OLDexport(fin, filename, objects, proxyObjects):
     print("Exporting!")
     fout = open(filename, "w")
     writeFilename = "blender_test.rib"
@@ -189,6 +196,15 @@ class ImportChronoRender(bpy.types.Operator):
     def invoke(self, context, event):
         context.window_manager.fileselect_add(self)
         return {'RUNNING_MODAL'}
+
+    def assignGlobals(self):
+        """docstring for assignGlobals"""
+        global fin
+        global objects
+        global proxyObjects
+        fin = self.fin
+        objects = self.objects
+        proxyObjects = self.proxyObjects
             
     def execute(self, context):
         # filename = "/home/xeno/repos/blender-plugin/plugins/blender/blender_input_test.dat"
@@ -216,7 +232,7 @@ class ImportChronoRender(bpy.types.Operator):
                         proxyExists = True
                 if not proxyExists:
                     print("New Proxy line num {}".format(i))
-                    # proxyObjects.append(ProxyObject(data, [i+1]))
+                    proxyObjects.append(ProxyObject(data, [i+1]))
 
         configInitialScene()
         print("Here")
@@ -227,8 +243,11 @@ class ImportChronoRender(bpy.types.Operator):
         for obj in proxyObjects:
             obj.addToBlender()
 
+        self.assignGlobals()
+
         print("objects added")
         return {'FINISHED'}
+
 
 def add_importChronoRenderButton(self, context):
     self.layout.operator(
@@ -247,12 +266,74 @@ class ExportChronoRender(bpy.types.Operator):
         context.window_manager.fileselect_add(self)
         return {'RUNNING_MODAL'}
 
+    def recieveGlobals(self):
+        """docstring for recieveGlobals"""
+        global fin
+        global objects
+        global proxyObjects
+        self.fin = fin
+        self.objects = objects
+        self.proxyObjects = proxyObjects
+
     def execute(self, context):
         # export_filename = "/home/xeno/repos/blender-plugin/plugins/blender/blender_output_test.md"
+        #TODO: get objects and proxyobject properties from blender
+        # into the yaml file
+        # Start by getting the global stuff to work
         filepath = os.path.join(self.directory, self.filename)
+        fout = open(filepath, "w")
         print("Export beginning")
 
-        print("Export complete! (not really)")
+        recieveGlobals()
+        for proxy in proxyObjects:
+            proxy.update()
+            name = proxy.attribute
+            maxIndex = max(proxy.indicies)
+            minIndex = min(proxy.indicies)
+
+            #Extra params on a case by case basis
+            extraParams = proxy.attribute
+            for e in proxy.ep:
+                extraParams += " " + str(e)
+
+            color = "{} {} {}".format(proxy.color[0], proxy.color[1], proxy.color[2])
+
+
+        data = {"chronorender" : {
+                    "rendersettings" : {"searchpaths" : "./"},
+                    "camera" : [{"fileame" : "default_camera.rib"}],
+                    "lighting" : [{"filename" : "default_lighting.rib"}],
+                    "scene" : [{"filename" : "default_scene.rib"}],
+                    "renderpass" : [{
+                            "name" : "defaultpass",
+                            "settings" : {
+                                "resolution" : "640 480",
+                                "display" : {"output" : "out.tif"}}}],
+                    "simulation" : {
+                        "data" : {
+                            "datasource" : [{
+                                "type" : "csv",
+                                "name" : "defaultdata",
+                                "resource" : "./*.dat",
+                                "fields" : [
+                                    ["id", "integer"],
+                                    ["pos_x", "float"],
+                                    ["pos_y", "float"],
+                                    ["pos_z", "float"],
+                                    ["euler_x", "float"],
+                                    ["euler_y", "float"],
+                                    ["euler_z", "float"]]}],
+                            "renderobject" : [{
+                                "name" : "particle",
+                                "condition" : "id >= 0",
+                                "color" : color,
+                                "geometry" : [{
+                                    "radius" : 0.888,
+                                    "type" : "sphere"}]}]}}}}
+
+        yaml.safe_dump(data, fout)
+
+        print("Export complete! (yes really)")
         return {'FINISHED'}
 
 def add_exportChronoRenderButton(self, context):
@@ -262,6 +343,7 @@ def add_exportChronoRenderButton(self, context):
             icon='PLUGIN')
 
 def register():
+    print("Registering")
     bpy.utils.register_class(ImportChronoRender)
     # bpy.types.INFO_MT_file.append(add_object_button)
     bpy.types.INFO_MT_file_import.append(add_importChronoRenderButton)
@@ -269,15 +351,14 @@ def register():
     bpy.utils.register_class(ExportChronoRender)
     bpy.types.INFO_MT_file_export.append(add_exportChronoRenderButton)
 
-# def unregister():
-#     bpy.utils.unregister_class(MoveOperator)
-#     bpy.types.INFO_MT_file_import.remove(add_object_button)
-    #     
+def unregister():
+    print("Unregistering")
+    bpy.utils.unregister_class(ImportChronoRender)
+    bpy.types.unregister_class(ExportChronoRender)
 
-    # export(fin, export_filename, objects, proxyObjects)
 
-    # #TODO: run only when export button hit!
-    # fin.close()
+#TODO: run only when export button hit!
+# fin.close()
 
 
 if __name__ == "__main__":
