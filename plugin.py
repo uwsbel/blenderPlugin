@@ -48,6 +48,8 @@ bl_info = {
         "tracker_url":"TODO",
         "category": "Import-Export"}
 
+DEFAULT_COLOR = (100, 100, 150)
+
 fin = ""
 objects = ""
 proxyObjects = ""
@@ -131,7 +133,10 @@ class ProxyObject(Object):
     def update(self):
         """Grabs stuff like color, texture and stores them"""
         #Color can be diffuse, specular, mirror, and subsurface scattering
-        self.color = (self.obj.active_material.diffuse_color[1], self.obj.active_material.diffuse_color[2] ,self.obj.active_material.diffuse_color[3])
+        if self.obj.active_material is not None:
+            self.color = (self.obj.active_material.diffuse_color[1], self.obj.active_material.diffuse_color[2] ,self.obj.active_material.diffuse_color[3])
+        else:
+            self.color = DEFAULT_COLOR
 
 def configInitialScene():
     # bpy.ops.object.delete()
@@ -197,16 +202,10 @@ class ImportChronoRender(bpy.types.Operator):
         context.window_manager.fileselect_add(self)
         return {'RUNNING_MODAL'}
 
-    def assignGlobals(self):
-        """docstring for assignGlobals"""
+    def execute(self, context):
         global fin
         global objects
         global proxyObjects
-        fin = self.fin
-        objects = self.objects
-        proxyObjects = self.proxyObjects
-            
-    def execute(self, context):
         # filename = "/home/xeno/repos/blender-plugin/plugins/blender/blender_input_test.dat"
         individualObjectsIndicies = range(1,7900, 100) 
 
@@ -237,17 +236,13 @@ class ImportChronoRender(bpy.types.Operator):
         configInitialScene()
         print("Here")
 
-        
         for obj in objects:
             obj.addToBlender()
         for obj in proxyObjects:
             obj.addToBlender()
 
-        self.assignGlobals()
-
         print("objects added")
         return {'FINISHED'}
-
 
 def add_importChronoRenderButton(self, context):
     self.layout.operator(
@@ -266,25 +261,19 @@ class ExportChronoRender(bpy.types.Operator):
         context.window_manager.fileselect_add(self)
         return {'RUNNING_MODAL'}
 
-    def recieveGlobals(self):
-        """docstring for recieveGlobals"""
-        global fin
-        global objects
-        global proxyObjects
-        self.fin = fin
-        self.objects = objects
-        self.proxyObjects = proxyObjects
-
     def execute(self, context):
         # export_filename = "/home/xeno/repos/blender-plugin/plugins/blender/blender_output_test.md"
         #TODO: get objects and proxyobject properties from blender
         # into the yaml file
         # Start by getting the global stuff to work
+        global fin
+        global objects
+        global proxyObjects
+
         filepath = os.path.join(self.directory, self.filename)
         fout = open(filepath, "w")
         print("Export beginning")
 
-        recieveGlobals()
         for proxy in proxyObjects:
             proxy.update()
             name = proxy.attribute
