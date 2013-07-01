@@ -48,7 +48,7 @@ bl_info = {
         "tracker_url":"TODO",
         "category": "Import-Export"}
 
-DEFAULT_COLOR = (100, 100, 150)
+DEFAULT_COLOR = (0.4, 0.4, 0.6)
 
 fin = ""
 objects = ""
@@ -112,31 +112,31 @@ class ProxyObject(Object):
         """ data is a line of the input file, indicies is a list of lines 
         from the file that this obj represents whichAttribute is a num which 
         specifies the column of data on the line that decides proxyObjs and 
-        attribute tells the specifica attribute which this proxyObj is for 
+        group tells the specifica group which this proxyObj is for 
         (sphere, cube...) """
         # print("MAKING PROXY OBJ")
 
         Object.__init__(self, data, indicies[0])
         self.indicies = indicies
-        self.attribute = data[0]
-        # print(self.attribute)
-        self.color = (0.0, 0.1, 0.9)
+        self.group = data[0]
+        # print(self.group)
+        self.color = DEFAULT_COLOR
         self.alpha = 1.0
+        self.obj_type = "sphere" #TODO: get actual type
+        self.ep = [float(data[x]) for x in range(8,len(data)-1)] #-1 cause of endline char
 
     def addToBlender(self):
         # print(self.ep)
         bpy.ops.mesh.primitive_monkey_add(radius=self.ep[0], location=(self.x, self.y, self.z))
-        bpy.context.active_object["attribute"] = self.attribute
-        bpy.context.active_object.name = "Proxy " + self.attribute
+        bpy.context.active_object["group"] = self.group
+        bpy.context.active_object.name = "Proxy " + self.group
         self.obj = bpy.context.active_object
 
     def update(self):
         """Grabs stuff like color, texture and stores them"""
         #Color can be diffuse, specular, mirror, and subsurface scattering
         if self.obj.active_material is not None:
-            self.color = (self.obj.active_material.diffuse_color[1], self.obj.active_material.diffuse_color[2] ,self.obj.active_material.diffuse_color[3])
-        else:
-            self.color = DEFAULT_COLOR
+            self.color = (self.obj.active_material.diffuse_color[0], self.obj.active_material.diffuse_color[1], self.obj.active_material.diffuse_color[2])
 
 def configInitialScene():
     # bpy.ops.object.delete()
@@ -226,7 +226,7 @@ class ImportChronoRender(bpy.types.Operator):
                 data = line.split(",")
                 proxyExists = False
                 for obj in proxyObjects:
-                    if obj.attribute == data[0]:
+                    if obj.group == data[0]:
                         obj.indicies.append(i+1)
                         proxyExists = True
                 if not proxyExists:
@@ -274,23 +274,45 @@ class ExportChronoRender(bpy.types.Operator):
         fout = open(filepath, "w")
         print("Export beginning")
 
+        #Camera stuff
+        camera_loc = bpy.data.objects['Camera'].location
+        camera_rot = bpy.data.objects['Camera'].rotation_euler[0:3]
+        camera_rot_degrees = [math.degrees(i) for i in camera_rot]
+        cam_file_name = "custom_camera.rib"
+        cam_file = open(cam_file_name, "w")
+        cam_file.write('Projection "perspective" "fov" [37]\n')
+        cam_file.write('Rotate {} {} {}\n'.format(camera_rot_degrees[0],
+                                                camera_rot_degrees[1],
+                                                camera_rot_degrees[2]))
+        cam_file.write('Translate {} {} {}\n'.format(camera_loc[0],
+                                                    camera_loc[1],
+                                                    camera_loc[2]))
+        cam_file.close()
+
+
+        renderobject = []
         for proxy in proxyObjects:
             proxy.update()
-            name = proxy.attribute
+            name = proxy.group
             maxIndex = max(proxy.indicies)
             minIndex = min(proxy.indicies)
 
-            #Extra params on a case by case basis
-            extraParams = proxy.attribute
-            for e in proxy.ep:
-                extraParams += " " + str(e)
-
             color = "{} {} {}".format(proxy.color[0], proxy.color[1], proxy.color[2])
 
+            obj = dict()
+            obj["name"] = str(name)
+            obj["condition"] = "id >= {} and id <= {}".format(minIndex, maxIndex)
+            obj["color"] = color
+            obj["geometry"] = [{"type" : proxy.obj_type}]
+            
+            if proxy.obj_type.lower() == "sphere":
+                obj["geometry"][0]["radius"] = proxy.ep[0]
+
+            renderobject.append(obj)
 
         data = {"chronorender" : {
                     "rendersettings" : {"searchpaths" : "./"},
-                    "camera" : [{"fileame" : "default_camera.rib"}],
+                    "camera" : [{"filename" : cam_file_name}],
                     "lighting" : [{"filename" : "default_lighting.rib"}],
                     "scene" : [{"filename" : "default_scene.rib"}],
                     "renderpass" : [{
@@ -311,14 +333,16 @@ class ExportChronoRender(bpy.types.Operator):
                                     ["pos_z", "float"],
                                     ["euler_x", "float"],
                                     ["euler_y", "float"],
-                                    ["euler_z", "float"]]}],
-                            "renderobject" : [{
-                                "name" : "particle",
-                                "condition" : "id >= 0",
-                                "color" : color,
-                                "geometry" : [{
-                                    "radius" : 0.888,
-                                    "type" : "sphere"}]}]}}}}
+                                    ["euler_z", "float"]]}]},
+                            
+                            "renderobject" : renderobject}}}
+                            # [{
+                            #     "name" : "particle",
+                            #     "condition" : "id >= 0",
+                            #     "color" : color,
+                            #     "geometry" : [{
+                            #         "radius" : 0.888,
+                            #         "type" : "sphere"}]}]}}}}
 
         yaml.safe_dump(data, fout)
 
