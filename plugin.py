@@ -3,6 +3,7 @@ import math
 import mathutils
 import os
 import yaml
+#TODO: Get the rotations conversion correct.
 
 #TODO: import selectable number of particles from .dat file
 # be able to add materials to it
@@ -54,7 +55,6 @@ proxyObjects = ""
 
 class Object:
     def __init__(self, data):
-        # print("CREATING OBJECT")
         # print("DATA:",data)
         self.group = data[0]
         self.index = int(data[1]) #The objects unique ID/index number
@@ -175,7 +175,7 @@ class ImportChronoRender(bpy.types.Operator):
         global objects
         global proxyObjects
         # filename = "/home/xeno/repos/blender-plugin/plugins/blender/blender_input_test.dat"
-        individualObjectsIndicies = [] #LINE NUMBERS
+        individualObjectsIndicies = [1] #LINE NUMBERS
 
         objects = []
         proxyObjects = []
@@ -187,8 +187,7 @@ class ImportChronoRender(bpy.types.Operator):
         for i, line in enumerate(fin):
             if i+1 in individualObjectsIndicies:
                 objects.append(Object(line.split(",")))
-                if i % 100 == 0:
-                    print("Object {}".format(i))
+                print("Object {}".format(i))
 
             else:
                 data = line.split(",")
@@ -228,6 +227,36 @@ class ExportChronoRender(bpy.types.Operator):
         context.window_manager.fileselect_add(self)
         return {'RUNNING_MODAL'}
 
+    def write_object(self, objects, is_proxy=False):
+        renderobject = []
+        for obj in objects:
+            obj.update()
+            name = obj.group
+            if is_proxy:
+                maxIndex = max(obj.indicies)
+                minIndex = min(obj.indicies)
+            else:
+                maxIndex = obj.index
+                minIndex = obj.index
+
+            color = "{} {} {}".format(obj.color[0], obj.color[1], obj.color[2])
+
+            data = dict()
+            data["name"] = str(name)
+            data["condition"] = "id >= {} and id <= {}".format(minIndex, maxIndex)
+            data["color"] = color
+            data["geometry"] = [{"type" : obj.obj_type}]
+            
+            if obj.obj_type.lower() == "sphere":
+                data["geometry"][0]["radius"] = obj.ep[0]
+            else:
+                print("Geometry type {} not supported by blender export at this time".format(obj.obj_type))
+
+            renderobject.append(data)
+
+        return renderobject
+
+
     def execute(self, context):
         # export_filename = "/home/xeno/repos/blender-plugin/plugins/blender/blender_output_test.md"
         #TODO: get objects and proxyobject properties from blender
@@ -264,26 +293,8 @@ class ExportChronoRender(bpy.types.Operator):
                                                     camera_loc[2]))
         cam_file.close()
 
-
-        renderobject = []
-        for proxy in proxyObjects:
-            proxy.update()
-            name = proxy.group
-            maxIndex = max(proxy.indicies)
-            minIndex = min(proxy.indicies)
-
-            color = "{} {} {}".format(proxy.color[0], proxy.color[1], proxy.color[2])
-
-            obj = dict()
-            obj["name"] = str(name)
-            obj["condition"] = "id >= {} and id <= {}".format(minIndex, maxIndex)
-            obj["color"] = color
-            obj["geometry"] = [{"type" : proxy.obj_type}]
-            
-            if proxy.obj_type.lower() == "sphere":
-                obj["geometry"][0]["radius"] = proxy.ep[0]
-
-            renderobject.append(obj)
+        renderobject = self.write_object(objects, is_proxy = False)
+        renderobject += self.write_object(proxyObjects, is_proxy = True)
 
         #TODO: ignore more than just one param?
         data = {"chronorender" : {
