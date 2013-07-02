@@ -62,21 +62,20 @@ class Object:
         self.x = float(data[2])
         self.y = float(data[3])
         self.z = float(data[4])
-        #Euler angles x,y,z
-        self.ex = float(data[5])
-        self.ey = float(data[6])
-        self.ez = float(data[7])
 
-        self.obj_type = data[8].lower()
+        self.quat = mathutils.Quaternion((float(data[5]), float(data[6]), float(data[7]), float(data[8])))
+        self.euler = tuple(math.degrees(a) for a in self.quat.to_euler())
+
+        self.obj_type = data[9].lower()
         #Extra parameters (specific to each object type)
-        self.ep = [float(data[x]) for x in range(9,len(data))] 
+        self.ep = [float(data[x]) for x in range(10,len(data))] 
 
         self.color = DEFAULT_COLOR
         self.material = self.create_material()
 
     def create_material(self):
         #TODO: material is created but not applied to the object!
-        mat = bpy.data.materials.new("Group {}'s material".format(self.group))
+        mat = bpy.data.materials.new("Object {}'s material".format(self.index))
         mat.diffuse_color = self.color
         mat.diffuse_shader = 'LAMBERT'
         mat.diffuse_intensity = 1.0
@@ -85,6 +84,7 @@ class Object:
         mat.specular_intensity = 0.5
         mat.alpha = 1.0
         mat.ambient = 1
+        return mat
 
     def addToBlender(self):
         # if self.index % 100 == 0:
@@ -92,21 +92,21 @@ class Object:
         # Cube
         if self.obj_type == "cube":
             #ep[0] = length of one side
-            bpy.ops.mesh.primitive_cube_add(radius=self.ep[0], location=(self.x, self.y, self.z), rotation=(self.ex, self.ey, self.ez))
+            bpy.ops.mesh.primitive_cube_add(radius=self.ep[0], location=(self.x, self.y, self.z), rotation=self.euler)
         # Cylinder
         elif self.obj_type == "cylinder":
             # ep[0] = radius of top, ep[1] = depth
-            bpy.ops.mesh.primitive_cylinder_add(radius=self.ep[0], depth=self.ep[1], location=(self.x, self.y, self.z), rotation=(self.ex, self.ey, self.ez))
+            bpy.ops.mesh.primitive_cylinder_add(radius=self.ep[0], depth=self.ep[1], location=(self.x, self.y, self.z), rotation=self.euler)
         # Sphere
         elif self.obj_type == "sphere":
             # ep[0] = radius of the sphere
             # uv sphere looks nicer but icosphere might be the better route
-            bpy.ops.mesh.primitive_uv_sphere_add(size=self.ep[0], location=(self.x, self.y, self.z), rotation=(self.ex, self.ey, self.ez))
+            bpy.ops.mesh.primitive_uv_sphere_add(size=self.ep[0], location=(self.x, self.y, self.z), rotation=self.euler)
         # Ellipsoid
         elif self.obj_type == "ellipsoid":
             #TODO: The elipses are just WRONG.
             #ep[0] is the radius, ep[1] is the length in the direction of rotation
-            bpy.ops.mesh.primitive_uv_sphere_add(size=self.ep[0], location=(self.x, self.y, self.z), rotation=(self.ex, self.ey, self.ez))
+            bpy.ops.mesh.primitive_uv_sphere_add(size=self.ep[0], location=(self.x, self.y, self.z), rotation=self.euler)
             #The right way?
             bpy.ops.transform.resize(value=(1,0.5,5))
         else:
@@ -114,7 +114,7 @@ class Object:
  
         bpy.context.active_object["index"] = self.index
         bpy.context.active_object.name = "Obj # {}".format(self.index)
-        bpy.context.active_object.data.materials.append(self.material)
+        bpy.context.active_object.active_material = self.material
         self.obj = bpy.context.active_object
         #object.get("index") to get the value
         #object["index"] doesn't work?
@@ -136,30 +136,16 @@ class ProxyObject(Object):
 
         Object.__init__(self, data)
         self.indicies = indicies
-        self.group = data[0]
         # print(self.group)
         self.color = DEFAULT_COLOR
-        self.obj_type = data[8].lower()
-        self.ep = [float(data[x]) for x in range(9,len(data))] 
-        self.material = self.create_material()
-
-    def create_material(self):
-        mat = bpy.data.materials.new("Group {}'s material".format(self.group))
-        mat.diffuse_color = self.color
-        mat.diffuse_shader = 'LAMBERT'
-        mat.diffuse_intensity = 1.0
-        mat.specular_color = (1.0, 1.0, 1.0)
-        mat.specular_shader = 'COOKTORR'
-        mat.specular_intensity = 0.5
-        mat.alpha = 1.0
-        mat.ambient = 1
+        self.material.name = "Group {}'s material".format(self.group)
 
     def addToBlender(self):
         # print(self.ep)
         bpy.ops.mesh.primitive_monkey_add(radius=self.ep[0], location=(self.x, self.y, self.z))
         bpy.context.active_object["group"] = self.group
         bpy.context.active_object.name = "Proxy " + self.group
-        bpy.context.active_object.data.materials.append(self.material)
+        bpy.context.active_object.active_material = self.material
         self.obj = bpy.context.active_object
 
     def update(self):
@@ -189,7 +175,7 @@ class ImportChronoRender(bpy.types.Operator):
         global objects
         global proxyObjects
         # filename = "/home/xeno/repos/blender-plugin/plugins/blender/blender_input_test.dat"
-        individualObjectsIndicies = []
+        individualObjectsIndicies = [] #LINE NUMBERS
 
         objects = []
         proxyObjects = []
@@ -257,15 +243,23 @@ class ExportChronoRender(bpy.types.Operator):
 
         #Camera stuff
         camera_loc = bpy.data.objects['Camera'].location
-        camera_rot = bpy.data.objects['Camera'].rotation_euler[0:3]
-        camera_rot_degrees = [math.degrees(i) for i in camera_rot]
+        # camera_rot = bpy.data.objects['Camera'].rotation_euler[0:3]
+        # camera_rot_degrees = [math.degrees(i) for i in camera_rot]
+        camera_euler = bpy.data.objects['Camera'].rotation_euler
+        camera_quat = camera_euler.to_quaternion()
+        camera_quat.invert() # For the conversion to rendermans coords
         cam_file_name = "custom_camera.rib"
         cam_file = open(cam_file_name, "w")
         cam_file.write('Projection "perspective" "fov" [37]\n')
-        cam_file.write('Rotate {} {} {}\n'.format(camera_rot_degrees[0],
-                                                camera_rot_degrees[1],
-                                                camera_rot_degrees[2]))
-        cam_file.write('Translate {} {} {}\n'.format(camera_loc[0],
+        #TODO: is the right to left hand conversion correct?
+        cam_file.write('Rotate {} {} {} {}\n'.format(math.degrees(camera_quat.angle),
+                                                    camera_quat.axis[0],
+                                                    camera_quat.axis[1],
+                                                    camera_quat.axis[2]))
+        # cam_file.write('Rotate {} {} {}\n'.format(camera_rot_degrees[0],
+        #                                         camera_rot_degrees[1],
+        #                                         camera_rot_degrees[2]))
+        cam_file.write('Translate {} {} {}\n'.format(-camera_loc[0],
                                                     camera_loc[1],
                                                     camera_loc[2]))
         cam_file.close()
@@ -291,6 +285,7 @@ class ExportChronoRender(bpy.types.Operator):
 
             renderobject.append(obj)
 
+        #TODO: ignore more than just one param?
         data = {"chronorender" : {
                     "rendersettings" : {"searchpaths" : "./"},
                     "camera" : [{"filename" : cam_file_name}],
@@ -308,14 +303,17 @@ class ExportChronoRender(bpy.types.Operator):
                                 "name" : "defaultdata",
                                 "resource" : "./*.dat",
                                 "fields" : [
+                                    ["group", "string"],
                                     ["id", "integer"],
                                     ["pos_x", "float"],
                                     ["pos_y", "float"],
                                     ["pos_z", "float"],
-                                    ["euler_x", "float"],
-                                    ["euler_y", "float"],
-                                    ["euler_z", "float"]]}]},
-                            
+                                    ["quat_w", "float"],
+                                    ["quat_x", "float"],
+                                    ["quat_y", "float"],
+                                    ["quat_z", "float"],
+                                    ["ignore", "string"],
+                                    ["ignore", "float"]]}]},
                             "renderobject" : renderobject}}}
                             # [{
                             #     "name" : "particle",
@@ -350,11 +348,5 @@ def unregister():
     bpy.utils.unregister_class(ImportChronoRender)
     bpy.types.unregister_class(ExportChronoRender)
 
-
-#TODO: run only when export button hit!
-# fin.close()
-
-
 if __name__ == "__main__":
     register()
-    # main()

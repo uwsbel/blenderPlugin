@@ -1,9 +1,14 @@
-Format for the data files for the blender plugin.
+**Installing the Plugin**
+TODO:
+
+**Basic Use of the Blender Plugin**
+TODO:
+
+**File Format**
 
 General Notes:
     All values should be separated by commas and there should be no 
-    space characters anywhere in the file. 
-
+    space characters anywhere in the file. Each file should end in .dat 
 
 Each line will represent one object, and will be of this format:
 
@@ -40,9 +45,9 @@ extra_params: Any other parameters needed to define the shape of the
 
 EXAMPLE: example.dat
 //////////////////////////////////////////////////////////////////////////////
-g1,1,0,0,0,90,0,0,sphere,1.0
-g1,2,5,0,0,90,0,0,sphere,0.5
-g2,3,-5,0,0,0,90,0,cube,0.5
+g1,1,0,0,0,0.707,0,-0.707,0,sphere,1.0
+g1,2,5,0,0,0.707,0,-0.707,0,sphere,0.5
+g2,3,-5,0,0,0.707,0,0,0.707,cube,0.5
 //////////////////////////////////////////////////////////////////////////////
 
 Data files will typically be much longer than this, but this is a perfectly 
@@ -55,3 +60,15 @@ Possible extensions to the file format:
 	potentially become part of the extra_params if needed
 -Currently object types must be simple primitives, can expand later to 
 	cover meshes from .obj and the like
+
+**What you can do**
+-Apply colors to your objects and have those colors show when you render.
+
+**What this plugin does NOT do (currently)**
+-allow you to move, rotate, or size the objects. You can do this in blender but if
+    you render with renderman your changes will NOT be applied. (Camera 
+    location however, WILL be changed if you move it. ctrl-alt-0 is nice for 
+    snapping the camera to your view point)
+-allow you to save your changes partway through. You must import the file,
+    apply materials and colors, and export it in ONE blender session.
+-a full render with blender's "render" button.
