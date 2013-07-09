@@ -24,6 +24,7 @@ import yaml
 
 #TODO: actually take input from blender for the export (a menu or something) colors and textures
 #TODO: make specific colors/texturing available for non-proxy objs as well
+#TODO: seclecting which proxys and which objs from a blender menu
 
 #TODO/CHECKLIST: make file format (pos, rot, geom type, dimensions, group, velocity, pressure
 # in bitbucket 
@@ -175,7 +176,7 @@ class ImportChronoRender(bpy.types.Operator):
         global objects
         global proxyObjects
         # filename = "/home/xeno/repos/blender-plugin/plugins/blender/blender_input_test.dat"
-        individualObjectsIndicies = [1] #LINE NUMBERS
+        individualObjectsIndicies = [1,2,3,4, 5, 6] #LINE NUMBERS
 
         objects = []
         proxyObjects = []
@@ -256,52 +257,58 @@ class ExportChronoRender(bpy.types.Operator):
 
         return renderobject
 
+    def matrix_to_list(self, matrix):
+        listy = []
+        for i in range(0, 4):
+            for j in range(0, 4):
+                listy.append(matrix[i][j])
+
+        return listy
 
     def execute(self, context):
-        # export_filename = "/home/xeno/repos/blender-plugin/plugins/blender/blender_output_test.md"
         #TODO: get objects and proxyobject properties from blender
         # into the yaml file
-        # Start by getting the global stuff to work
         global fin
         global objects
         global proxyObjects
 
+        #TODO: custom_camera only appears in the local folder. Change that!
         filepath = os.path.join(self.directory, self.filename)
         fout = open(filepath, "w")
         print("Export beginning")
 
         #Camera stuff
+        camera_matrix = bpy.data.objects['Camera'].matrix_world
+        camera = bpy.data.objects['Camera']
         camera_loc = bpy.data.objects['Camera'].location
-        # camera_rot = bpy.data.objects['Camera'].rotation_euler[0:3]
-        # camera_rot_degrees = [math.degrees(i) for i in camera_rot]
         camera_euler = bpy.data.objects['Camera'].rotation_euler
-        camera_quat = camera_euler.to_quaternion()
-        camera_quat.invert() # For the conversion to rendermans coords
         cam_file_name = "custom_camera.rib"
-        cam_file = open(cam_file_name, "w")
-        cam_file.write('Projection "perspective" "fov" [37]\n')
-        #TODO: is the right to left hand conversion correct?
-        cam_file.write('Rotate {} {} {} {}\n'.format(math.degrees(camera_quat.angle),
-                                                    camera_quat.axis[0],
-                                                    camera_quat.axis[1],
-                                                    camera_quat.axis[2]))
-        # cam_file.write('Rotate {} {} {}\n'.format(camera_rot_degrees[0],
-        #                                         camera_rot_degrees[1],
-        #                                         camera_rot_degrees[2]))
-        cam_file.write('Translate {} {} {}\n'.format(-camera_loc[0],
-                                                    camera_loc[1],
-                                                    camera_loc[2]))
+        cam_file = open(cam_file_name, 'w')
+
+        cam_fov = math.degrees(bpy.data.objects['Camera'].data.angle)
+        fov = 360.0*math.atan(16.0/camera.data.lens)/math.pi 
+
+        cam_file.write('Projection "perspective" "fov" [{}]\n'.format(fov))
+        cam_file.write("Scale 1 1 -1\n")
+        cam_file.write("Rotate {} 1 0 0\n".format(-math.degrees(camera_euler[0])))
+        cam_file.write("Rotate {} 0 1 0\n".format(-math.degrees(camera_euler[1])))
+        cam_file.write("Rotate {} 0 0 1\n".format(-math.degrees(camera_euler[2])))
+        cam_file.write("Translate {} {} {}\n".format(-camera_matrix[0][3],
+                                                    -camera_matrix[1][3],
+                                                    -camera_matrix[2][3]))
+
         cam_file.close()
 
         renderobject = self.write_object(objects, is_proxy = False)
         renderobject += self.write_object(proxyObjects, is_proxy = True)
 
         #TODO: ignore more than just one param?
+        #TODO: a basic background (default_scene.rib cut into things)
         data = {"chronorender" : {
                     "rendersettings" : {"searchpaths" : "./"},
                     "camera" : [{"filename" : cam_file_name}],
                     "lighting" : [{"filename" : "default_lighting.rib"}],
-                    "scene" : [{"filename" : "default_scene.rib"}],
+                    # "scene" : [{"filename" : "default_scene.rib"}],
                     "renderpass" : [{
                             "name" : "defaultpass",
                             "settings" : {
