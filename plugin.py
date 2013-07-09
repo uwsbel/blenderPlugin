@@ -38,11 +38,11 @@ import yaml
 
 bl_info = {
         "name": "Chrono::Render plugin",
-        "description": "TODO",
+        "description": "Allows for easy graphical manipulation of simulated data before rendering with a powerful renderman renderer",
         "author": "Daniel <Daphron> Kaczmarek",
-        "version": (0, 2),
+        "version": (0, 4),
         "blender": (2, 67, 1), #TODO: find minimum version
-        "location": "TODO",
+        "location": "File > Import > Import Chrono::Engine",
         "warning": "",
         "wiki_url": "TODO",
         "tracker_url":"TODO",
@@ -161,7 +161,7 @@ def configInitialScene():
     pass
 
 class ImportChronoRender(bpy.types.Operator):
-    """Imports a ChronoRender file."""
+    """Import ChronoRender"""
     bl_idname = "import.import_chrono_render"
     bl_label = "Import ChronoRender"
     filename = bpy.props.StringProperty(subtype='FILE_PATH')
@@ -218,9 +218,9 @@ def add_importChronoRenderButton(self, context):
             icon='PLUGIN')
 
 class ExportChronoRender(bpy.types.Operator):
-    """Exports the current scene into an easy to render format for Chrono::Render"""
+    """Exports to Chrono::Render"""
     bl_idname = "export.export_chrono_render"
-    bl_label = "Import Chrono::Render"
+    bl_label = "Export Chrono::Render"
     filename = bpy.props.StringProperty(subtype='FILE_PATH')
     directory = bpy.props.StringProperty(subtype='DIR_PATH')
 
@@ -283,7 +283,8 @@ class ExportChronoRender(bpy.types.Operator):
         camera_loc = bpy.data.objects['Camera'].location
         camera_euler = bpy.data.objects['Camera'].rotation_euler
         cam_file_name = "custom_camera.rib"
-        cam_file = open(cam_file_name, 'w')
+        cam_file_path = os.path.join(self.directory, cam_file_name)
+        cam_file = open(cam_file_path, 'w')
 
         cam_fov = math.degrees(bpy.data.objects['Camera'].data.angle)
         fov = 360.0*math.atan(16.0/camera.data.lens)/math.pi 

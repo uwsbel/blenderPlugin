@@ -1,8 +1,74 @@
-**Installing the Plugin**
-TODO:
+**Installing the Plugin and Chrono::Render**
+Requirements: blender 2.6x, python3, and pyyaml should all be installed on 
+    the machine from which you will be running blender.
+
+Note: this is written assuming you will run blender on a local machine
+and then render on euler.
+
+1. Clone the Chrono::Render repo by running 
+    hg clone https://daphron@bitbucket.org/daphron/blender-plugin 
+
+    from somewhere on euler.
+
+This contains all the files needed to take the exported data from blender 
+and create a nice render from it.
+
+2. Copy the file plugin.py from euler to your local machine's blender
+    addons folder by using the following command (execute on local machine)
+
+    scp username@euler.msvc.wisc.edu:/path/to/blender-plugin/plugins/blender/plugin.py
+    /path/to/blender/addons/folder/on/your/machine/chronorender_plugin.py
+
+    On linux blender addons go in:
+    /home/$user/.config/blender/$version/scripts/addons
+    Windows XP:
+    C:\Documents and Settings\%username%\Application Data\Blender Foundation\Blender\2.6x\scripts\addons
+    Windows7:
+    C:\Users\%username%\AppData\Roaming\Blender Foundation\Blender\2.6x\scripts\addons
+
+3. Open up blender.
+    Click on File->User Preferences->Addons 
+    Then scroll down until you see "Import-Export: Chrono::Render plugin"
+    Click the check box on the right side
+    Click "Save User Settings" at the bottom of the page
+    Congratulations, the plugin is now installed and ready for use
 
 **Basic Use of the Blender Plugin**
-TODO:
+The first thing to do is import a data file. To do this, click 
+File->Import->Imports a Chrono render file
+
+Then select the file you wish to import data from and click Import ChronoRender
+
+(If the default cube is still there, select it, press "x", and click "Delete")
+
+One of the things you can now do is add color to an object. To do so, select 
+    the object and select the material menu on the right hand side. (Symbol is
+    a sphere with two dark spots. About 1/3rd down the screen with a bunch of
+    other symbols)
+
+Under "Diffuse" there will be a colored bar. Click on it and select your color
+    using the color wheel. You can do this for all objects.
+
+In addition to colors, you can select the camera's position, rotation, and focal length
+    inside blender. You can move and rotate the camera as normal and press f12
+    to get a rough idea of what you will see when you render with renderman.
+    
+When done, click file->export->Exports chron render file and select where to
+    export it to. 
+
+Now you have 2 new files, the output file that you specified, and a file in
+    the same directory called custom_camera.rib. 
+
+Somewhere on euler, run:
+    /path/to/blender-plugin/scripts/crender.py init
+
+This creates a RENDERMAN directory. Now put you data file, the .yaml file you 
+exported from blender, and the custom_camera.rib file inside this directory.
+
+go into the RENDERMAN directory and run:
+    /path/to/blender-plugin/scripts/crender.py render -m yourfile.yaml -r aqsis
+
+It will then render your file and place an out.0.tif file in the /job/images folder
 
 **File Format**
 
