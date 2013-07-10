@@ -12,9 +12,15 @@ Each line will represent one object, and will be of this format:
 
 Group: An identifier to tell what objects it is related to. When 
 applying materials and colors to proxy objects in blender, all members 
-of the group will have the same material/color applied to them.
+of the group will have the same material/color applied to them. The one
+exception is the group "individual". Every item in this group will be
+visibile in blender and materials will have to be applied to each object
+seperately.
     Note: Group names should be completely lowercase. No distinction will
         be made between different cased group names.
+    Note: All members of a group MUST have the same object_type and parameters
+        for that object (e.g. all spheres have same radius). Locations and 
+        rotations may be different.
 
 Object ID: a number that will identify each unique object
 
@@ -37,18 +43,25 @@ extra_params: Any other parameters needed to define the shape of the
 			parameters, the length, width, and height of the ellipsoid
         an object_type of "Cylinder" requires 2 additional params, 
 			the radius, and the hight.
+        an object_type of "Cone" requires 2 additional params,
+            the radius and the height
 
 EXAMPLE: example.dat
 //////////////////////////////////////////////////////////////////////////////
 g1,1,0,0,0,0.707,0,-0.707,0,sphere,1.0
 g1,2,5,0,0,0.707,0,-0.707,0,sphere,0.5
 g2,3,-5,0,0,0.707,0,0,0.707,cube,0.5
+individual,4,-5,0,5,0.707,0,0,0.707,cube,0.5
 //////////////////////////////////////////////////////////////////////////////
 
 Data files will typically be much longer than this, but this is a perfectly 
 valid data file. The first two objects will be of group "g1" spheres located 
-at (0,0,0) and (5,0,0) with a radii of 1.0 and 0.5 respectively while a "g2" 
-sphere will appear at (-5,0,0) with radius 0.5.   
+at (0,0,0) and (5,0,0) with a radii of 1.0 (note that these radii MUST be the same)
+while a "g2" 
+sphere will appear at (-5,0,0) with radius 0.5. Finally, a cube identical to 
+the other one will be 5 units above it. This will be the only object visible
+in blender because of its group name "individual". The rest will be represented
+by proxy objects.
 
 Possible extensions to the file format:
 -density, pressure, velocity for simulations that need them could 

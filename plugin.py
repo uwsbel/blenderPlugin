@@ -3,7 +3,8 @@ import math
 import mathutils
 import os
 import yaml
-#TODO: Get the rotations conversion correct.
+#TODO: rotation of objects and cylinder,cones, elipsoids working. Then lights
+#TODO: proxy objects specified from outside the source code
 
 #TODO: import selectable number of particles from .dat file
 # be able to add materials to it
@@ -93,7 +94,7 @@ class Object:
         # Cube
         if self.obj_type == "cube":
             #ep[0] = length of one side
-            bpy.ops.mesh.primitive_cube_add(radius=self.ep[0], location=(self.x, self.y, self.z), rotation=self.euler)
+            bpy.ops.mesh.primitive_cube_add(radius=self.ep[0]/2, location=(self.x, self.y, self.z), rotation=self.euler)
         # Cylinder
         elif self.obj_type == "cylinder":
             # ep[0] = radius of top, ep[1] = depth
@@ -110,8 +111,13 @@ class Object:
             bpy.ops.mesh.primitive_uv_sphere_add(size=self.ep[0], location=(self.x, self.y, self.z), rotation=self.euler)
             #The right way?
             bpy.ops.transform.resize(value=(1,0.5,5))
+
+        #Cone
+        elif self.obj_type == "cone":
+            # self.ep[0] = radius of cone bottom, self.ep[1] = height of cone
+            bpy.ops.mesh.primitive_cone_add(radius1=self.ep[0], depth=self.ep[1], location=(self.x, self.y, self.z), rotation=self.euler)
         else:
-            print("Object type {} is not currently supported as a primitive")
+            print("Object type {} is not currently supported as a primitive in the blender plugin")
  
         bpy.context.active_object["index"] = self.index
         bpy.context.active_object.name = "Obj # {}".format(self.index)
@@ -186,7 +192,7 @@ class ImportChronoRender(bpy.types.Operator):
         fin = open(filepath, "r")
 
         for i, line in enumerate(fin):
-            if i+1 in individualObjectsIndicies:
+            if line.split(",")[0].lower() == "individual":
                 objects.append(Object(line.split(",")))
                 print("Object {}".format(i))
 
@@ -250,20 +256,20 @@ class ExportChronoRender(bpy.types.Operator):
             
             if obj.obj_type.lower() == "sphere":
                 data["geometry"][0]["radius"] = obj.ep[0]
+            elif obj.obj_type.lower() == "cube":
+                data["geometry"][0]["side"] = obj.ep[0]
+            elif obj.obj_type.lower() == "cone":
+                data["geometry"][0]["radius"] = obj.ep[0]
+                data["geometry"][0]["height"] = obj.ep[1]
+            elif obj.obj_type.lower() == "cylinder":
+                data["geometry"][0]["radius"] = obj.ep[0]
+                data["geometry"][0]["height"] = obj.ep[1]
             else:
                 print("Geometry type {} not supported by blender export at this time".format(obj.obj_type))
 
             renderobject.append(data)
 
         return renderobject
-
-    def matrix_to_list(self, matrix):
-        listy = []
-        for i in range(0, 4):
-            for j in range(0, 4):
-                listy.append(matrix[i][j])
-
-        return listy
 
     def execute(self, context):
         #TODO: get objects and proxyobject properties from blender
@@ -322,6 +328,7 @@ class ExportChronoRender(bpy.types.Operator):
                                 "name" : "defaultdata",
                                 "resource" : "./*.dat",
                                 "fields" : [
+                                    #TODO: ugly hack for ignores
                                     ["group", "string"],
                                     ["id", "integer"],
                                     ["pos_x", "float"],
@@ -332,6 +339,23 @@ class ExportChronoRender(bpy.types.Operator):
                                     ["quat_y", "float"],
                                     ["quat_z", "float"],
                                     ["ignore", "string"],
+                                    ["ignore", "float"],
+                                    ["ignore", "float"], #any reasonable input will work
+                                    ["ignore", "float"],
+                                    ["ignore", "float"],
+                                    ["ignore", "float"],
+                                    ["ignore", "float"],
+                                    ["ignore", "float"],
+                                    ["ignore", "float"],
+                                    ["ignore", "float"],
+                                    ["ignore", "float"],
+                                    ["ignore", "float"],
+                                    ["ignore", "float"],
+                                    ["ignore", "float"],
+                                    ["ignore", "float"],
+                                    ["ignore", "float"],
+                                    ["ignore", "float"],
+                                    ["ignore", "float"],
                                     ["ignore", "float"]]}]},
                             "renderobject" : renderobject}}}
                             # [{
