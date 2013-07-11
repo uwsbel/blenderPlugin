@@ -4,18 +4,13 @@ import mathutils
 import os
 import yaml
 #TODO: rotation of objects and cylinder,cones, elipsoids working. Then lights
-#TODO: proxy objects specified from outside the source code
+#TODO: shader selection inside blender?
 
-#TODO: import selectable number of particles from .dat file
 # be able to add materials to it
-# export to renderman/rib?
 # click and have all the scripts built
 # one proxy object per type in a data column
 # one script that prepares for cluster
 # one script that does one frame for you
-# file is: type, posx, posy, posz, quatenion, 3 radii things
-# type goes something like 1=sphere, 2=elipsoid, 3=cube... 
-# ^^ not any more!
 
 # TODO: currently all objects represented by one proxy must have the SAME GEOMETRY
 # eg. sphere radius 3, cannot also have spheres of radius 2
@@ -32,10 +27,6 @@ import yaml
 # render the file. in blender(headless?), then using renderman 
 # full animation
 # fancier stuff (moving camra/lights or fancy materials (shadows, reflection, ambient and global illumination)
-
-# The input format:
-#Group, Object ID, x_pos, y_pos, z_pos, euler_x, euler_y, euler_z, 
-#   object_type, extra_params
 
 bl_info = {
         "name": "Chrono::Render plugin",
@@ -178,7 +169,7 @@ class ImportChronoRender(bpy.types.Operator):
         return {'RUNNING_MODAL'}
 
     def execute(self, context):
-        global fin
+        global fin_name
         global objects
         global proxyObjects
         # filename = "/home/xeno/repos/blender-plugin/plugins/blender/blender_input_test.dat"
@@ -187,6 +178,7 @@ class ImportChronoRender(bpy.types.Operator):
         objects = []
         proxyObjects = []
 
+        fin_name = self.filename
         filepath = os.path.join(self.directory, self.filename)
 
         fin = open(filepath, "r")
@@ -274,7 +266,7 @@ class ExportChronoRender(bpy.types.Operator):
     def execute(self, context):
         #TODO: get objects and proxyobject properties from blender
         # into the yaml file
-        global fin
+        global fin_name
         global objects
         global proxyObjects
 
@@ -309,6 +301,8 @@ class ExportChronoRender(bpy.types.Operator):
         renderobject = self.write_object(objects, is_proxy = False)
         renderobject += self.write_object(proxyObjects, is_proxy = True)
 
+        data_name = "./" + "_".join(fin_name.split("_")[:-1]) + "_*.dat"
+
         #TODO: ignore more than just one param?
         #TODO: a basic background (default_scene.rib cut into things)
         data = {"chronorender" : {
@@ -326,7 +320,7 @@ class ExportChronoRender(bpy.types.Operator):
                             "datasource" : [{
                                 "type" : "csv",
                                 "name" : "defaultdata",
-                                "resource" : "./*.dat",
+                                "resource" : data_name,
                                 "fields" : [
                                     #TODO: ugly hack for ignores
                                     ["group", "string"],

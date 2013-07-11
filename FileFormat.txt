@@ -2,8 +2,12 @@ Format for the data files for the blender plugin.
 
 General Notes:
     All values should be separated by commas and there should be no 
-    space characters anywhere in the file. 
+    space characters anywhere in the file.
 
+
+Each data file represents one frame of a simulation. Filenames must end in
+    _#.dat.
+    Ex. mydata_0.dat, mydata_1.dat, mydata_2.dat
 
 Each line will represent one object, and will be of this format:
 
@@ -46,7 +50,7 @@ extra_params: Any other parameters needed to define the shape of the
         an object_type of "Cone" requires 2 additional params,
             the radius and the height
 
-EXAMPLE: example.dat
+EXAMPLE: example_0.dat
 //////////////////////////////////////////////////////////////////////////////
 g1,1,0,0,0,0.707,0,-0.707,0,sphere,1.0
 g1,2,5,0,0,0.707,0,-0.707,0,sphere,0.5

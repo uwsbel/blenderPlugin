@@ -70,7 +70,33 @@ go into the RENDERMAN directory and run:
 
 It will then render your file and place an out.0.tif file in the /job/images folder
 
+
 **File Format**
+Each data file represents one frame of a simulation. Filenames must end in
+    _#.dat.
+    Ex. mydata_0.dat, mydata_1.dat, mydata_2.dat
+
+Each line will represent one object, and will be of this format:
+
+    Group, Object ID, x_pos, y_pos, z_pos, quat_w, quat_x, quat_y, quat_z,
+    object_type, extra_params
+
+Group: An identifier to tell what objects it is related to. When 
+applying materials and colors to proxy objects in blender, all members 
+of the group will have the same material/color applied to them. The one
+exception is the group "individual". Every item in this group will be
+visibile in blender and materials will have to be applied to each object
+seperately.
+    Note: Group names should be completely lowercase. No distinction will
+        be made between different cased group names.
+    Note: All members of a group MUST have the same object_type and parameters
+        for that object (e.g. all spheres have same radius). Locations and 
+        rotations may be different.
+
+Object ID: a number that will identify each unique object
+
+x_pos, y_pos, z_pos: x,y,z coorinates of the object
+
 
 General Notes:
     All values should be separated by commas and there should be no 
