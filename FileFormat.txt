@@ -69,9 +69,13 @@ by proxy objects.
     Name:               extra params
     sphere              radius
     cube                side_length
-    ellipsoid           NOT YET SUPPORTED
+    ellipsoid           a,b,c  (semi-principle axis)
     cylinder            radius, height
     cone                radius, height
+
+-All supported primitive objects are NOT the same as their renderman counterparts.
+    Supported objects have all sides closed so the top and bottom of a
+    cylinder will not be open. 
 
 Possible extensions to the file format:
 -density, pressure, velocity for simulations that need them could 

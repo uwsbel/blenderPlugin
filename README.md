@@ -143,7 +143,7 @@ extra_params: Any other parameters needed to define the shape of the
         an object_type of "cube" would require one extra parameter for 
 			the side length
         an object_type of "ellipsoid" would require 3 additional 
-			parameters, the length, width, and height of the ellipsoid
+			parameters, the semi-principle axes a, b, and c.
         an object_type of "Cylinder" requires 2 additional params, 
 			the radius, and the hight.
 
