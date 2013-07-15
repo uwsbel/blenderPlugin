@@ -106,9 +106,10 @@ class Object:
         elif self.obj_type == "ellipsoid":
             #TODO: The elipses are just WRONG.
             #ep[0] is the radius, ep[1] is the length in the direction of rotation
-            bpy.ops.mesh.primitive_uv_sphere_add(size=self.ep[0], location=(self.x, self.y, self.z), rotation=self.euler)
+            bpy.ops.mesh.primitive_uv_sphere_add(size=self.ep[0], location=(self.x, self.y, self.z))
             #The right way?
-            bpy.ops.transform.resize(value=(1,0.5,5))
+            bpy.ops.transform.resize(value=(self.ep[0],self.ep[1],self.ep[2]))
+            bpy.context.object.rotation_euler = mathutils.Euler(self.euler)
 
         #Cone
         elif self.obj_type == "cone":
@@ -263,6 +264,10 @@ class ExportChronoRender(bpy.types.Operator):
             elif obj.obj_type.lower() == "cylinder":
                 data["geometry"][0]["radius"] = obj.ep[0]
                 data["geometry"][0]["height"] = obj.ep[1]
+            elif obj.obj_type.lower() == "ellipsoid":
+                data["geometry"][0]["a"] = obj.ep[0]
+                data["geometry"][0]["b"] = obj.ep[1]
+                data["geometry"][0]["c"] = obj.ep[2]
             else:
                 print("Geometry type {} not supported by blender export at this time".format(obj.obj_type))
 
