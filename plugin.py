@@ -115,6 +115,9 @@ class Object:
         elif self.obj_type == "cone":
             # self.ep[0] = radius of cone bottom, self.ep[1] = height of cone
             bpy.ops.mesh.primitive_cone_add(radius1=self.ep[0], depth=self.ep[1], location=(self.x, self.y, self.z), rotation=self.euler)
+        #Torus
+        elif self.obj_type == "torus":
+            bpy.ops.mesh.primitive_torus_add(rotation=self.euler, location=(self.x, self.y, self.z), major_radius=self.ep[0], minor_radius=self.ep[1])
         else:
             print("Object type {} is not currently supported as a primitive in the blender plugin")
  
@@ -268,6 +271,9 @@ class ExportChronoRender(bpy.types.Operator):
                 data["geometry"][0]["a"] = obj.ep[0]
                 data["geometry"][0]["b"] = obj.ep[1]
                 data["geometry"][0]["c"] = obj.ep[2]
+            elif obj.obj_type.lower() == "torus":
+                data["geometry"][0]["rmajor"] = obj.ep[0]
+                data["geometry"][0]["rminor"] = obj.ep[1]
             else:
                 print("Geometry type {} not supported by blender export at this time".format(obj.obj_type))
 
