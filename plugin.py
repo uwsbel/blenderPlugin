@@ -19,14 +19,21 @@ import yaml
 # camera loc, filepath, scaling factor, frame range, data file
 
 #TODO: actually take input from blender for the export (a menu or something) colors and textures
-#TODO: make specific colors/texturing available for non-proxy objs as well
+#TODO: Be able to submit the job to euler!
 #TODO: seclecting which proxys and which objs from a blender menu
+#TODO: Why is renderman's window larger than blender's for rendering
 
 #TODO/CHECKLIST: make file format (pos, rot, geom type, dimensions, group, velocity, pressure
 # in bitbucket 
 # render the file. in blender(headless?), then using renderman 
 # full animation
 # fancier stuff (moving camra/lights or fancy materials (shadows, reflection, ambient and global illumination)
+
+
+# Converts to video
+# ffmpeg -f image2 -r 2 -i out.%01d.tif -c:v libx264  test.mp4
+
+#Resolution and shading rate affect time and quality of render
 
 bl_info = {
         "name": "Chrono::Render plugin",
@@ -57,7 +64,7 @@ class Object:
         self.z = float(data[4])
 
         self.quat = mathutils.Quaternion((float(data[5]), float(data[6]), float(data[7]), float(data[8])))
-        self.euler = tuple(math.degrees(a) for a in self.quat.to_euler())
+        self.euler = tuple(a for a in self.quat.to_euler())
 
         self.obj_type = data[9].lower()
         #Extra parameters (specific to each object type)
@@ -303,6 +310,9 @@ class ExportChronoRender(bpy.types.Operator):
 
         data_name = "./" + "_".join(fin_name.split("_")[:-1]) + "_*.dat"
 
+        resolution = "{} {}".format(bpy.data.scenes["Scene"].render.resolution_x, 
+                               bpy.data.scenes["Scene"].render.resolution_y)
+
         #TODO: ignore more than just one param?
         #TODO: a basic background (default_scene.rib cut into things)
         data = {"chronorender" : {
@@ -313,7 +323,7 @@ class ExportChronoRender(bpy.types.Operator):
                     "renderpass" : [{
                             "name" : "defaultpass",
                             "settings" : {
-                                "resolution" : "640 480",
+                                "resolution" : resolution,
                                 "display" : {"output" : "out.tif"}}}],
                     "simulation" : {
                         "data" : {

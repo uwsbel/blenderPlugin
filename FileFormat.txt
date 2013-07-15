@@ -43,8 +43,6 @@ extra_params: Any other parameters needed to define the shape of the
 			the radius
         an object_type of "cube" would require one extra parameter for 
 			the side length
-        an object_type of "ellipsoid" would require 3 additional 
-			parameters, the length, width, and height of the ellipsoid
         an object_type of "Cylinder" requires 2 additional params, 
 			the radius, and the hight.
         an object_type of "Cone" requires 2 additional params,
@@ -66,6 +64,14 @@ sphere will appear at (-5,0,0) with radius 0.5. Finally, a cube identical to
 the other one will be 5 units above it. This will be the only object visible
 in blender because of its group name "individual". The rest will be represented
 by proxy objects.
+
+**Supported Object Types** 
+    Name:               extra params
+    sphere              radius
+    cube                side_length
+    ellipsoid           NOT YET SUPPORTED
+    cylinder            radius, height
+    cone                radius, height
 
 Possible extensions to the file format:
 -density, pressure, velocity for simulations that need them could 

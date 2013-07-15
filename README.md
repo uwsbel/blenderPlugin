@@ -70,6 +70,18 @@ go into the RENDERMAN directory and run:
 
 It will then render your file and place an out.0.tif file in the /job/images folder
 
+If you wish to render multiple frames or make a video, you will need to copy 
+    all of the data files and use the "-f startframe endframe" flag.
+
+    /path/to/blender-plugin/scripts/crender.py render -m yourfile.yaml -r aqsis -f 0 99
+
+    will render 100 frames. To make these frames into a movie, just use the 
+    cmovie.py script.
+
+    /path/to/blender-plugin/scripts/cmovie.py a/lot/of/junk/RENDERMAN/job/images/out.00.tif movie.mp4
+
+    and all your images will be turned into a video.
+
 
 **File Format**
 Each data file represents one frame of a simulation. Filenames must end in
