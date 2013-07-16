@@ -6,8 +6,8 @@ General Notes:
 
 
 Each data file represents one frame of a simulation. Filenames must end in
-    _#.dat.
-    Ex. mydata_0.dat, mydata_1.dat, mydata_2.dat
+    _#.dat and should contain leading zeros.
+    Ex. mydata_000.dat, mydata_001.dat, mydata_002.dat ... mydata_099.dat, mydata_100.dat
 
 Each line will represent one object, and will be of this format:
 

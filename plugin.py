@@ -22,6 +22,8 @@ import yaml
 #TODO: Be able to submit the job to euler!
 #TODO: seclecting which proxys and which objs from a blender menu
 #TODO: Why is renderman's window larger than blender's for rendering
+#TODO: render hammad's thing and figure out how to deal with particles in only
+#some of the files
 
 #TODO/CHECKLIST: make file format (pos, rot, geom type, dimensions, group, velocity, pressure
 # in bitbucket 
@@ -67,8 +69,16 @@ class Object:
         self.euler = tuple(a for a in self.quat.to_euler())
 
         self.obj_type = data[9].lower()
+
+        #Deal with common aliases for the primitives
+        if self.obj_type == "box":
+            self.obj_type = "cube"
         #Extra parameters (specific to each object type)
-        self.ep = [float(data[x]) for x in range(10,len(data))] 
+        # test = []
+        # for x in range(10,len(data)):
+        #     if data[x] is not '\n':
+        #         test.append(float(data[x]))
+        self.ep = [float(data[x]) for x in range(10,len(data)) if data[x] is not '\n'] 
 
         self.color = DEFAULT_COLOR
         self.material = self.create_material()
@@ -184,7 +194,7 @@ class ImportChronoRender(bpy.types.Operator):
         global objects
         global proxyObjects
         # filename = "/home/xeno/repos/blender-plugin/plugins/blender/blender_input_test.dat"
-        individualObjectsIndicies = [1,2,3,4, 5, 6] #LINE NUMBERS
+        # individualObjectsIndicies = [1,2,3,4, 5, 6] #LINE NUMBERS
 
         objects = []
         proxyObjects = []
