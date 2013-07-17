@@ -19,7 +19,7 @@ import yaml
 # camera loc, filepath, scaling factor, frame range, data file
 
 #TODO: actually take input from blender for the export (a menu or something) colors and textures
-#TODO: Be able to submit the job to euler!
+#TODO: Be able to submit the job to euler! (qsub works, make crend submit take args to create and submit a job to euler
 #TODO: seclecting which proxys and which objs from a blender menu
 #TODO: Why is renderman's window larger than blender's for rendering
 #TODO: render hammad's thing and figure out how to deal with particles in only
@@ -247,23 +247,36 @@ class ExportChronoRender(bpy.types.Operator):
         context.window_manager.fileselect_add(self)
         return {'RUNNING_MODAL'}
 
+    def construct_condition(self, indicies):
+        """docstring for construct_condition"""
+        rtnd = "id == "
+        if len(indicies) <= 0:
+            raise Exception("No indicies in this proxy object")
+        for i in indicies:
+            rtnd += str(i) + " or id == "
+
+        return rtnd[:-10] #-10 t remove the trailing or id ==
+
     def write_object(self, objects, is_proxy=False):
         renderobject = []
         for obj in objects:
             obj.update()
             name = obj.group
-            if is_proxy:
-                maxIndex = max(obj.indicies)
-                minIndex = min(obj.indicies)
-            else:
-                maxIndex = obj.index
-                minIndex = obj.index
 
+            #Start writing
             color = "{} {} {}".format(obj.color[0], obj.color[1], obj.color[2])
 
             data = dict()
             data["name"] = str(name)
-            data["condition"] = "id >= {} and id <= {}".format(minIndex, maxIndex)
+
+            if is_proxy:
+                data["condition"] = self.construct_condition(obj.indicies)
+
+            else:
+                maxIndex = obj.index
+                minIndex = obj.index
+                data["condition"] = "id >= {} and id <= {}".format(minIndex, maxIndex)
+
             data["color"] = color
             data["geometry"] = [{"type" : obj.obj_type}]
             
@@ -364,24 +377,24 @@ class ExportChronoRender(bpy.types.Operator):
                                     ["quat_y", "float"],
                                     ["quat_z", "float"],
                                     ["ignore", "string"],
-                                    ["ignore", "float"],
-                                    ["ignore", "float"], #any reasonable input will work
-                                    ["ignore", "float"],
-                                    ["ignore", "float"],
-                                    ["ignore", "float"],
-                                    ["ignore", "float"],
-                                    ["ignore", "float"],
-                                    ["ignore", "float"],
-                                    ["ignore", "float"],
-                                    ["ignore", "float"],
-                                    ["ignore", "float"],
-                                    ["ignore", "float"],
-                                    ["ignore", "float"],
-                                    ["ignore", "float"],
-                                    ["ignore", "float"],
-                                    ["ignore", "float"],
-                                    ["ignore", "float"],
-                                    ["ignore", "float"]]}]},
+                                    ["ignore", "string"],
+                                    ["ignore", "string"], #any reasonable input will work
+                                    ["ignore", "string"],
+                                    ["ignore", "string"],
+                                    ["ignore", "string"],
+                                    ["ignore", "string"],
+                                    ["ignore", "string"],
+                                    ["ignore", "string"],
+                                    ["ignore", "string"],
+                                    ["ignore", "string"],
+                                    ["ignore", "string"],
+                                    ["ignore", "string"],
+                                    ["ignore", "string"],
+                                    ["ignore", "string"],
+                                    ["ignore", "string"],
+                                    ["ignore", "string"],
+                                    ["ignore", "string"],
+                                    ["ignore", "string"]]}]},
                             "renderobject" : renderobject}}}
                             # [{
                             #     "name" : "particle",

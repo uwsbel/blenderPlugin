@@ -82,88 +82,43 @@ If you wish to render multiple frames or make a video, you will need to copy
 
     and all your images will be turned into a video.
 
+**Submitting to the cluster for rendering**
+The procedure for submitting a job to the cluster for rendering is almost exactly
+the same as for rendering locally. Compare:
 
+    For a local render:
+        /path/to/crender.py render -m yourfile.yaml -r aqsis -f 0 99
+
+    For a distributed render:
+        /path/to/crender.py submit -m yourfile.yaml -r aqsis -f 0 99
+    
+    Of course, there are more options for # nodes etc. To see these, just
+    call crender.py submit -h.
+
+    A possibly out of date list:
+
+    optional arguments:
+      -h, --help            show this help message and exit
+      -m METADATA, --metadata METADATA
+                            the data file that contains the render job info
+      -r RENDERER, --renderer RENDERER
+                            which renderer to use, dumps to stdout by default
+      -f FRAMERANGE FRAMERANGE, --framerange FRAMERANGE FRAMERANGE
+                            render the specified framerange; by default renders
+                            frame 0
+      -c NAME, --name NAME  the name of the job you are submitting. What it is
+                            (c)alled
+      -n NODES, --nodes NODES
+                            the number of nodes
+      -p PPN, --ppn PPN     the number of cores per node
+      -w WALLTIME, --walltime WALLTIME
+                            limit on how long the job can run HH:MM:SS
+      -q QUEUE, --queue QUEUE
+                            which queue to submit the job to
+
+        
 **File Format**
-Each data file represents one frame of a simulation. Filenames must end in
-    _#.dat.
-    Ex. mydata_0.dat, mydata_1.dat, mydata_2.dat
-
-Each line will represent one object, and will be of this format:
-
-    Group, Object ID, x_pos, y_pos, z_pos, quat_w, quat_x, quat_y, quat_z,
-    object_type, extra_params
-
-Group: An identifier to tell what objects it is related to. When 
-applying materials and colors to proxy objects in blender, all members 
-of the group will have the same material/color applied to them. The one
-exception is the group "individual". Every item in this group will be
-visibile in blender and materials will have to be applied to each object
-seperately.
-    Note: Group names should be completely lowercase. No distinction will
-        be made between different cased group names.
-    Note: All members of a group MUST have the same object_type and parameters
-        for that object (e.g. all spheres have same radius). Locations and 
-        rotations may be different.
-
-Object ID: a number that will identify each unique object
-
-x_pos, y_pos, z_pos: x,y,z coorinates of the object
-
-
-General Notes:
-    All values should be separated by commas and there should be no 
-    space characters anywhere in the file. Each file should end in .dat 
-
-Each line will represent one object, and will be of this format:
-
-    Group, Object ID, x_pos, y_pos, z_pos, quat_w, quat_x, quat_y, quat_z,
-    object_type, extra_params
-
-Group: An identifier to tell what objects it is related to. When 
-applying materials and colors to proxy objects in blender, all members 
-of the group will have the same material/color applied to them.
-    Note: Group names should be completely lowercase. No distinction will
-        be made between different cased group names.
-
-Object ID: a number that will identify each unique object
-
-x_pos, y_pos, z_pos: x,y,z coorinates of the object
-
-quat_w, quat_x, quat_y, quat_z: orientation of the object using quaternions
-
-object_type: A string representing the type of the object
-    ex. "sphere", "cube", "ellipsoid"...
-    Note: The object_type should always be completely lowercase.
-
-extra_params: Any other parameters needed to define the shape of the 
-	object. The number of these parameters will depend on the value of 
-	object_type.
-    ex. an object_type of "sphere" would require one extra parameter for 
-			the radius
-        an object_type of "cube" would require one extra parameter for 
-			the side length
-        an object_type of "ellipsoid" would require 3 additional 
-			parameters, the semi-principle axes a, b, and c.
-        an object_type of "Cylinder" requires 2 additional params, 
-			the radius, and the hight.
-
-EXAMPLE: example.dat
-//////////////////////////////////////////////////////////////////////////////
-g1,1,0,0,0,0.707,0,-0.707,0,sphere,1.0
-g1,2,5,0,0,0.707,0,-0.707,0,sphere,0.5
-g2,3,-5,0,0,0.707,0,0,0.707,sphere,0.5
-//////////////////////////////////////////////////////////////////////////////
-
-Data files will typically be much longer than this, but this is a perfectly 
-valid data file. The first two objects will be of group "g1" spheres located 
-at (0,0,0) and (5,0,0) with a radii of 1.0 and 0.5 respectively while a "g2" 
-sphere will appear at (-5,0,0) with radius 0.5.   
-
-Possible extensions to the file format:
--density, pressure, velocity for simulations that need them could 
-	potentially become part of the extra_params if needed
--Currently object types must be simple primitives, can expand later to 
-	cover meshes from .obj and the like
+See FileFormat.txt
 
 **What you can do**
 -Apply colors to your objects and have those colors show when you render.
