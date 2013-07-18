@@ -40,9 +40,9 @@ extra_params: Any other parameters needed to define the shape of the
 	object. The number of these parameters will depend on the value of 
 	object_type.
     ex. an object_type of "sphere" would require one extra parameter for 
-			the radius
+			the radius 
         an object_type of "cube" would require one extra parameter for 
-			the side length
+			the HALF of the side length
         an object_type of "Cylinder" requires 2 additional params, 
 			the radius, and the hight.
         an object_type of "Cone" requires 2 additional params,
@@ -65,14 +65,15 @@ the other one will be 5 units above it. This will be the only object visible
 in blender because of its group name "individual". The rest will be represented
 by proxy objects.
 
+
 **Supported Object Types** 
     Name:               extra params
     sphere              radius
-    cube                side_length
+    cube                half_side_length
     ellipsoid           a,b,c  (semi-principle axis)
     cylinder            radius, height
     cone                radius, height
-
+    box                 half_xlength, half_ylength, half_zlength
 -All supported primitive objects are NOT the same as their renderman counterparts.
     Supported objects have all sides closed so the top and bottom of a
     cylinder will not be open. 

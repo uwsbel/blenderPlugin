@@ -70,9 +70,6 @@ class Object:
 
         self.obj_type = data[9].lower()
 
-        #Deal with common aliases for the primitives
-        if self.obj_type == "box":
-            self.obj_type = "cube"
         #Extra parameters (specific to each object type)
         # test = []
         # for x in range(10,len(data)):
@@ -102,7 +99,12 @@ class Object:
         # Cube
         if self.obj_type == "cube":
             #ep[0] = length of one side
-            bpy.ops.mesh.primitive_cube_add(radius=self.ep[0]/2, location=(self.x, self.y, self.z), rotation=self.euler)
+            bpy.ops.mesh.primitive_cube_add(radius=self.ep[0], location=(self.x, self.y, self.z), rotation=self.euler)
+        #Box
+        if self.obj_type == "box":
+            bpy.ops.mesh.primitive_cube_add(radius=1.0, location=(self.x, self.y, self.z))
+            bpy.ops.transform.resize(value=(self.ep[0], self.ep[1], self.ep[2]))
+            bpy.context.object.rotation_euler = mathutils.Euler(self.euler)
         # Cylinder
         elif self.obj_type == "cylinder":
             # ep[0] = radius of top, ep[1] = depth
@@ -116,7 +118,7 @@ class Object:
         elif self.obj_type == "ellipsoid":
             #TODO: The elipses are just WRONG.
             #ep[0] is the radius, ep[1] is the length in the direction of rotation
-            bpy.ops.mesh.primitive_uv_sphere_add(size=self.ep[0], location=(self.x, self.y, self.z))
+            bpy.ops.mesh.primitive_uv_sphere_add(size=1.0, location=(self.x, self.y, self.z))
             #The right way?
             bpy.ops.transform.resize(value=(self.ep[0],self.ep[1],self.ep[2]))
             bpy.context.object.rotation_euler = mathutils.Euler(self.euler)
@@ -297,6 +299,10 @@ class ExportChronoRender(bpy.types.Operator):
             elif obj.obj_type.lower() == "torus":
                 data["geometry"][0]["rmajor"] = obj.ep[0]
                 data["geometry"][0]["rminor"] = obj.ep[1]
+            elif obj.obj_type.lower() == "box":
+                data["geometry"][0]["xlength"] = obj.ep[0]
+                data["geometry"][0]["ylength"] = obj.ep[1]
+                data["geometry"][0]["zlength"] = obj.ep[2]
             else:
                 print("Geometry type {} not supported by blender export at this time".format(obj.obj_type))
 
@@ -376,8 +382,8 @@ class ExportChronoRender(bpy.types.Operator):
                                     ["quat_x", "float"],
                                     ["quat_y", "float"],
                                     ["quat_z", "float"],
-                                    ["ignore", "string"],
-                                    ["ignore", "string"],
+                                    ["ignore", "string"], #object type
+                                    ["ignore", "string"], #extra params
                                     ["ignore", "string"], #any reasonable input will work
                                     ["ignore", "string"],
                                     ["ignore", "string"],
