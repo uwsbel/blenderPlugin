@@ -19,11 +19,18 @@ import yaml
 # camera loc, filepath, scaling factor, frame range, data file
 
 #TODO: actually take input from blender for the export (a menu or something) colors and textures
-#TODO: Be able to submit the job to euler! (qsub works, make crend submit take args to create and submit a job to euler
 #TODO: seclecting which proxys and which objs from a blender menu
 #TODO: Why is renderman's window larger than blender's for rendering
 #TODO: render hammad's thing and figure out how to deal with particles in only
 #some of the files
+#TODO: prman has holes in the bottom of the cylinders, aqsis doesn't. Why?
+#TODO: between frames 820 and 821 prman dies. Try using the output flags via a python call in rib maybe?
+#TODO: lighting from blender to renderman
+
+#TODO: did job 66641 work on the amd node with 128gb mem?
+#TODO: aqsis rendering frame 586? prman does. 
+#TODO: little circles?
+#TODO: lighting
 
 #TODO/CHECKLIST: make file format (pos, rot, geom type, dimensions, group, velocity, pressure
 # in bitbucket 
@@ -55,6 +62,29 @@ fin = ""
 objects = ""
 proxyObjects = ""
 
+
+class AmbientLightProxy:
+    def __init__(self):
+        self.material = self.create_material()
+
+    def create_material(self):
+        mat = bpy.data.materials.new("Ambient light proxy material")
+        mat.diffuse_color = (0,0,0)
+        mat.diffuse_shader = 'LAMBERT'
+        mat.diffuse_intensity = 1.0
+        mat.specular_color = (1.0, 1.0, 1.0)
+        mat.specular_shader = 'COOKTORR'
+        mat.specular_intensity = 0.5
+        mat.alpha = 1.0
+        mat.ambient = 1
+        return mat
+
+    def addToBlender(self):
+        bpy.ops.mesh.primitive_monkey_add(location=(6, 6, 6))
+        bpy.context.active_object.name = "Ambient Light Proxy"
+        bpy.context.active_object.active_material = self.material
+        self.obj = bpy.context.active_object
+        
 class Object:
     def __init__(self, data):
         # print("DATA:",data)
@@ -81,7 +111,6 @@ class Object:
         self.material = self.create_material()
 
     def create_material(self):
-        #TODO: material is created but not applied to the object!
         mat = bpy.data.materials.new("Object {}'s material".format(self.index))
         mat.diffuse_color = self.color
         mat.diffuse_shader = 'LAMBERT'
@@ -101,7 +130,7 @@ class Object:
             #ep[0] = length of one side
             bpy.ops.mesh.primitive_cube_add(radius=self.ep[0], location=(self.x, self.y, self.z), rotation=self.euler)
         #Box
-        if self.obj_type == "box":
+        elif self.obj_type == "box":
             bpy.ops.mesh.primitive_cube_add(radius=1.0, location=(self.x, self.y, self.z))
             bpy.ops.transform.resize(value=(self.ep[0], self.ep[1], self.ep[2]))
             bpy.context.object.rotation_euler = mathutils.Euler(self.euler)
@@ -195,6 +224,7 @@ class ImportChronoRender(bpy.types.Operator):
         global fin_name
         global objects
         global proxyObjects
+        global ambient_proxy
         # filename = "/home/xeno/repos/blender-plugin/plugins/blender/blender_input_test.dat"
         # individualObjectsIndicies = [1,2,3,4, 5, 6] #LINE NUMBERS
 
@@ -229,6 +259,8 @@ class ImportChronoRender(bpy.types.Operator):
         for obj in proxyObjects:
             obj.addToBlender()
 
+        ambient_proxy = AmbientLightProxy()
+        ambient_proxy.addToBlender()
         print("objects added")
         return {'FINISHED'}
 
@@ -316,13 +348,16 @@ class ExportChronoRender(bpy.types.Operator):
         global fin_name
         global objects
         global proxyObjects
+        global ambient_proxy
 
         #TODO: custom_camera only appears in the local folder. Change that!
         filepath = os.path.join(self.directory, self.filename)
         fout = open(filepath, "w")
         print("Export beginning")
 
-        #Camera stuff
+        ##############
+        #Camera stuff#
+        ##############
         camera_matrix = bpy.data.objects['Camera'].matrix_world
         camera = bpy.data.objects['Camera']
         camera_loc = bpy.data.objects['Camera'].location
@@ -344,6 +379,35 @@ class ExportChronoRender(bpy.types.Operator):
                                                     -camera_matrix[2][3]))
 
         cam_file.close()
+        #############
+        #Light stuff#
+        #############
+        light_file_name = "custom_lighting.rib"
+        light_file_path = os.path.join(self.directory, light_file_name)
+        light_file = open(light_file_path, 'w')
+
+        for i, obj in enumerate(bpy.context.scene.objects):
+            if obj.type == 'LAMP':
+                light_string = "LightSource"
+                
+                e = obj.rotation_euler
+                M = e.to_matrix()
+                v = mathutils.Vector((0,0,-1)) #default direction of light
+                end_x, end_y, end_z = M*v
+                if obj.data.type == 'SUN':
+                    light_string = 'LightSource "distantlight" {} "intensity" {} "lightcolor" [{} {} {}] "from" [{} {} {}] "to" [{} {} {}]\n'.format(i, obj.data.energy, obj.data.color[0], obj.data.color[1], obj.data.color[2], 0, 0, 0, end_x, end_y, end_z)
+
+                elif obj.data.type == 'POINT':
+                    light_string = 'LightSource "pointlight" {} "intensity" {} "lightcolor" [{} {} {}] "from" [{} {} {}]\n'.format(i, obj.data.energy, obj.data.color[0], obj.data.color[1], obj.data.color[2], obj.location.x, obj.location.y, obj.location.z)
+
+                elif obj.data.type == 'SPOT':
+                    light_string = 'LightSource "spotlight" {} "intensity" {}  "coneangle" {} "lightcolor" [{} {} {}] "from" [{} {} {}] "to" [{} {} {}]\n'.format(i, obj.data.energy, obj.data.spot_size, obj.data.color[0], obj.data.color[1], obj.data.color[2], obj.location.x, obj.location.y, obj.location.z, end_x, end_y, end_z)
+
+
+                light_file.write(light_string)
+
+        light_string = 'LightSource "ambientlight" {} "intensity" {} "lightcolor" [{} {} {}]\n'.format(i, ambient_proxy.obj.active_material.ambient, bpy.data.worlds["World"].ambient_color[0], bpy.data.worlds["World"].ambient_color[1], bpy.data.worlds["World"].ambient_color[2])
+        light_file.write(light_string)
 
         renderobject = self.write_object(objects, is_proxy = False)
         renderobject += self.write_object(proxyObjects, is_proxy = True)
@@ -358,7 +422,7 @@ class ExportChronoRender(bpy.types.Operator):
         data = {"chronorender" : {
                     "rendersettings" : {"searchpaths" : "./"},
                     "camera" : [{"filename" : cam_file_name}],
-                    "lighting" : [{"filename" : "default_lighting.rib"}],
+                    "lighting" : [{"filename" : "custom_lighting.rib"}],
                     # "scene" : [{"filename" : "default_scene.rib"}],
                     "renderpass" : [{
                             "name" : "defaultpass",

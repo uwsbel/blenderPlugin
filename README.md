@@ -62,10 +62,13 @@ Now you have 2 new files, the output file that you specified, and a file in
 Somewhere on euler, run:
     /path/to/blender-plugin/scripts/crender.py init
 
-This creates a RENDERMAN directory. Now put you data file, the .yaml file you 
+This creates a RENDERMAN directory. Now put the .yaml file you 
 exported from blender, and the custom_camera.rib file inside this directory.
+Put all of your data files inside the RENDERMAN/job/data directory
+
 
 go into the RENDERMAN directory and run:
+    /path/to/blender-plugin/scripts/crender.py update
     /path/to/blender-plugin/scripts/crender.py render -m yourfile.yaml -r aqsis
 
 It will then render your file and place an out.0.tif file in the /job/images folder
@@ -116,7 +119,37 @@ the same as for rendering locally. Compare:
       -q QUEUE, --queue QUEUE
                             which queue to submit the job to
 
+    Note: 
+        When using aqsis as the renderer, it will automatically submit a seperate
+        job for each node. Do NOT bother giving aqsis renders multiple nodes or
+        ppn as it is unable to use them.
+
         
+**Lighting**
+The most basic way to light a scene is to use the "Ambient Light Proxy" object.
+    This object allows you to set the intensity of the ambient light by going 
+    to the materials tab (the little checkered sphere mid way down the right 
+    sidebar) and adjusting the "Ambient" parameter. In order to adjust the 
+    color, you must go to the World tab (a blueish circle to the left of the 
+    materials tab) and adjust the "Ambient Color" parameter. 
+
+    Note: the effects of the intensity that you specified will NOT be visible
+    in blender as blender uses individual intensities for each object. This
+    does not happen in renderman, so a proxy object is required to set the 
+    intensity.
+
+The other way to light a scene is to use blender's built in lights. In the
+    default scene there is already one point light. To edit the parameters
+    for this light, go to the little tab that has a little x with a dot in the 
+    center. This is the lighting tab. Here you may change the type of light
+    (note that only point, sun, and spot are allowed for renderman), the color,
+    and the energy (a max of 1 for sun should be used). Finally, if using the 
+    "spot" light, the angle of the beam can be adjusted using the "Size"
+    parameter under "Spot Shape".
+
+    Note: TODO: intensities do not currently match up between blender and renderman
+
+
 **File Format**
 See FileFormat.txt
 
