@@ -402,6 +402,8 @@ class ExportChronoRender(bpy.types.Operator):
                 e = obj.rotation_euler
                 M = e.to_matrix()
                 v = mathutils.Vector((0,0,-1)) #default direction of light
+                # v.rotate(e)
+                # end_x, end_y, end_z = v
                 end_x, end_y, end_z = M*v
                 if obj.data.type == 'SUN':
                     # intensity = obj.data.energy*
@@ -412,15 +414,13 @@ class ExportChronoRender(bpy.types.Operator):
 
                 elif obj.data.type == 'SPOT':
                     delta_angle = obj.data.spot_size/2 * obj.data.spot_blend
-                    light_string = 'LightSource "spotlight" {} "intensity" {}  "coneangle" {} "conedeltaangle" {} "lightcolor" [{} {} {}] "from" [{} {} {}] "to" [{} {} {}]\n'.format(i, obj.data.energy, obj.data.spot_size/2.0, delta_angle, obj.data.color[0], obj.data.color[1], obj.data.color[2], obj.location.x, obj.location.y, obj.location.z, end_x, end_y, end_z)
+                    light_string = 'LightSource "spotlight" {} "intensity" {}  "coneangle" {} "conedeltaangle" {} "lightcolor" [{} {} {}] "from" [{} {} {}] "to" [{} {} {}]\n'.format(i, obj.data.energy, obj.data.spot_size/2.0, delta_angle, obj.data.color[0], obj.data.color[1], obj.data.color[2], obj.location.x, obj.location.y, obj.location.z, end_x+obj.location.x, end_y+obj.location.y, end_z+obj.location.z)
 
 
                 light_file.write(light_string)
 
 
         ambient_proxy.update()
-        if ambient_proxy.obj.active_material == None:
-            import pdb; pdb.set_trace()
         light_string = 'LightSource "ambientlight" {} "intensity" {} "lightcolor" [{} {} {}]\n'.format(i, ambient_proxy.obj.active_material.ambient, bpy.data.worlds["World"].ambient_color[0], bpy.data.worlds["World"].ambient_color[1], bpy.data.worlds["World"].ambient_color[2])
         light_file.write(light_string)
         light_file.close()
