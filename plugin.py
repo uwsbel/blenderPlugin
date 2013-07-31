@@ -24,13 +24,12 @@ import yaml
 #TODO: render hammad's thing and figure out how to deal with particles in only
 #some of the files
 #TODO: prman has holes in the bottom of the cylinders, aqsis doesn't. Why?
-#TODO: between frames 820 and 821 prman dies. Try using the output flags via a python call in rib maybe?
 #TODO: lighting from blender to renderman
 
-#TODO: did job 66641 work on the amd node with 128gb mem?
-#TODO: aqsis rendering frame 586? prman does. 
-#TODO: little circles?
 #TODO: lighting
+#TODO: lights in slightly wrong place on block. Why? 
+#TODO: intensity level somehow
+#TODO: default "blender" shader??
 
 #TODO/CHECKLIST: make file format (pos, rot, geom type, dimensions, group, velocity, pressure
 # in bitbucket 
@@ -66,6 +65,14 @@ proxyObjects = ""
 class AmbientLightProxy:
     def __init__(self):
         self.material = self.create_material()
+        self.obj = None
+
+    def update(self):
+        """Grabs stuff like color, texture and stores them"""
+        #Color can be diffuse, specular, mirror, and subsurface scattering
+        if self.obj.active_material is None:
+            self.obj = bpy.context.scene.objects['Ambient Light Proxy']
+        self.color = (self.obj.active_material.diffuse_color[0], self.obj.active_material.diffuse_color[1], self.obj.active_material.diffuse_color[2])
 
     def create_material(self):
         mat = bpy.data.materials.new("Ambient light proxy material")
@@ -172,8 +179,10 @@ class Object:
     def update(self):
         """Grabs stuff like color, texture and stores them"""
         #Color can be diffuse, specular, mirror, and subsurface scattering
-        if self.obj.active_material is not None:
-            self.color = (self.obj.active_material.diffuse_color[0], self.obj.active_material.diffuse_color[1], self.obj.active_material.diffuse_color[2])
+        if self.obj.active_material is None:
+            self.obj = bpy.context.scene.objects['Obj # {}'.format(self.index)]
+        self.color = (self.obj.active_material.diffuse_color[0], self.obj.active_material.diffuse_color[1], self.obj.active_material.diffuse_color[2])
+
 
 class ProxyObject(Object):
     def __init__(self, data, indicies):
@@ -395,19 +404,30 @@ class ExportChronoRender(bpy.types.Operator):
                 v = mathutils.Vector((0,0,-1)) #default direction of light
                 end_x, end_y, end_z = M*v
                 if obj.data.type == 'SUN':
+                    # intensity = obj.data.energy*
                     light_string = 'LightSource "distantlight" {} "intensity" {} "lightcolor" [{} {} {}] "from" [{} {} {}] "to" [{} {} {}]\n'.format(i, obj.data.energy, obj.data.color[0], obj.data.color[1], obj.data.color[2], 0, 0, 0, end_x, end_y, end_z)
 
                 elif obj.data.type == 'POINT':
                     light_string = 'LightSource "pointlight" {} "intensity" {} "lightcolor" [{} {} {}] "from" [{} {} {}]\n'.format(i, obj.data.energy, obj.data.color[0], obj.data.color[1], obj.data.color[2], obj.location.x, obj.location.y, obj.location.z)
 
                 elif obj.data.type == 'SPOT':
-                    light_string = 'LightSource "spotlight" {} "intensity" {}  "coneangle" {} "lightcolor" [{} {} {}] "from" [{} {} {}] "to" [{} {} {}]\n'.format(i, obj.data.energy, obj.data.spot_size, obj.data.color[0], obj.data.color[1], obj.data.color[2], obj.location.x, obj.location.y, obj.location.z, end_x, end_y, end_z)
+                    delta_angle = obj.data.spot_size/2 * obj.data.spot_blend
+                    light_string = 'LightSource "spotlight" {} "intensity" {}  "coneangle" {} "conedeltaangle" {} "lightcolor" [{} {} {}] "from" [{} {} {}] "to" [{} {} {}]\n'.format(i, obj.data.energy, obj.data.spot_size/2.0, delta_angle, obj.data.color[0], obj.data.color[1], obj.data.color[2], obj.location.x, obj.location.y, obj.location.z, end_x, end_y, end_z)
 
 
                 light_file.write(light_string)
 
+
+        ambient_proxy.update()
+        if ambient_proxy.obj.active_material == None:
+            import pdb; pdb.set_trace()
         light_string = 'LightSource "ambientlight" {} "intensity" {} "lightcolor" [{} {} {}]\n'.format(i, ambient_proxy.obj.active_material.ambient, bpy.data.worlds["World"].ambient_color[0], bpy.data.worlds["World"].ambient_color[1], bpy.data.worlds["World"].ambient_color[2])
         light_file.write(light_string)
+        light_file.close()
+
+        ##########
+        #The Rest#
+        ##########
 
         renderobject = self.write_object(objects, is_proxy = False)
         renderobject += self.write_object(proxyObjects, is_proxy = True)
