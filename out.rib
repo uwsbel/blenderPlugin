@@ -1,0 +1,16 @@
+_render stdout
+Option "searchpath" "shader" ["/home/dankaczma/blender-plugin/chronorender/assets:/home/dankaczma/blender-plugin/chronorender/assets/shaders:/home/dankaczma/blender-plugin/chronorender/assets/textures:job/shaders:@"]
+Option "searchpath" "procedural" ["/home/dankaczma/blender-plugin/chronorender/assets:/home/dankaczma/blender-plugin/chronorender/assets/shaders:/home/dankaczma/blender-plugin/chronorender/assets/textures:scripts:@"]
+Option "searchpath" "texture" ["/home/dankaczma/blender-plugin/chronorender/assets:/home/dankaczma/blender-plugin/chronorender/assets/shaders:/home/dankaczma/blender-plugin/chronorender/assets/textures:textures:@"]
+Option "searchpath" "archive" ["/home/dankaczma/blender-plugin/chronorender/assets:/home/dankaczma/blender-plugin/chronorender/assets/shaders:/home/dankaczma/blender-plugin/chronorender/assets/textures:ribarchives:@"]
+FrameBegin 0
+Format 640 480 1
+PixelSamples 4 4
+ShadingRate 4.0
+ShadingInterpolation "smooth"
+Display "job/images/out.0.tif" "file" "rgba"
+WorldBegin
+ReadArchive "default_lighting.rib"
+ReadArchive "default_scene.rib"
+WorldEnd
+FrameEnd
