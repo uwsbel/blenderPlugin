@@ -26,10 +26,10 @@ import yaml
 #TODO: prman has holes in the bottom of the cylinders, aqsis doesn't. Why?
 #TODO: lighting from blender to renderman
 
-#TODO: lighting
-#TODO: lights in slightly wrong place on block. Why? 
 #TODO: intensity level somehow
-#TODO: default "blender" shader??
+#TODO: shadows!
+#TODO: shadows currently take objects with colors and shaders, kill this and save time!
+#TODO: shadows seem to work with test scene but not with frame 30 of hammads foam. Why?
 
 #TODO/CHECKLIST: make file format (pos, rot, geom type, dimensions, group, velocity, pressure
 # in bitbucket 
@@ -60,7 +60,6 @@ DEFAULT_COLOR = (0.4, 0.4, 0.6)
 fin = ""
 objects = ""
 proxyObjects = ""
-
 
 class AmbientLightProxy:
     def __init__(self):
@@ -182,7 +181,6 @@ class Object:
         if self.obj.active_material is None:
             self.obj = bpy.context.scene.objects['Obj # {}'.format(self.index)]
         self.color = (self.obj.active_material.diffuse_color[0], self.obj.active_material.diffuse_color[1], self.obj.active_material.diffuse_color[2])
-
 
 class ProxyObject(Object):
     def __init__(self, data, indicies):
@@ -322,6 +320,7 @@ class ExportChronoRender(bpy.types.Operator):
 
             data["color"] = color
             data["geometry"] = [{"type" : obj.obj_type}]
+            data["shader"] = [{"name" : "matte.sl"}] #TODO: not hardcoded
             
             if obj.obj_type.lower() == "sphere":
                 data["geometry"][0]["radius"] = obj.ep[0]
@@ -347,9 +346,62 @@ class ExportChronoRender(bpy.types.Operator):
             else:
                 print("Geometry type {} not supported by blender export at this time".format(obj.obj_type))
 
-            renderobject.append(data)
+            if not obj.obj.hide_render:
+                renderobject.append(data)
 
         return renderobject
+
+    def camera_to_renderman(self, context, obj):
+        camera_matrix = obj.matrix_world
+        camera = obj
+        camera_loc = obj.location
+        camera_euler = obj.rotation_euler
+
+        fov = None
+        try:
+            cam_fov = math.degrees(obj.data.angle)
+            fov = 360.0*math.atan(16.0/camera.data.lens)/math.pi 
+        except AttributeError:
+            if hasattr(obj.data, "spot_size"):
+                fov = obj.data.spot_size
+            else:
+                pass
+
+        out = ''
+
+        out += ('Projection "perspective" "fov" [{}]\n'.format(fov))
+        out += ("Scale 1 1 -1\n")
+        out += ("Rotate {} 1 0 0\n".format(-math.degrees(camera_euler[0])))
+        out += ("Rotate {} 0 1 0\n".format(-math.degrees(camera_euler[1])))
+        out += ("Rotate {} 0 0 1\n".format(-math.degrees(camera_euler[2])))
+        out += ("Translate {} {} {}\n".format(-camera_matrix[0][3],
+                                                    -camera_matrix[1][3],
+                                                    -camera_matrix[2][3]))
+        return out
+    
+    def write_shadowspot(self, context, renderpasses, light_file, obj, end_x, end_y, end_z, delta_angle, index):
+        name = "shadow_" + obj.data.name 
+        shadowmap_name = name + ".rib"
+        shadowmap_file_path = os.path.join(self.directory, shadowmap_name)
+        shadowmap_file = open(shadowmap_file_path, 'w')
+        shadowmap_file.write(self.camera_to_renderman(context, obj))
+
+        light_string = 'LightSource "shadowspot" {} "intensity" {}  "coneangle" {} "conedeltaangle" {} "lightcolor" [{} {} {}] "from" [{} {} {}] "to" [{} {} {}] "shadowname" ["{}"]\n'.format(index, obj.data.energy*20, obj.data.spot_size/2.0, delta_angle, obj.data.color[0], obj.data.color[1], obj.data.color[2], obj.location.x, obj.location.y, obj.location.z, end_x+obj.location.x, end_y+obj.location.y, end_z+obj.location.z, name+".shd")
+        light_file.write(light_string)
+
+        #TODO: heuristic for resolution of pass
+        shadowpass = {
+                    "name": "shadowpass" + str(index),
+                    "type": "shadow",
+                    "settings" : {
+                        "resolution" : "512 512 1",
+                        "shadingrate" : 1.0,
+                        "pixelsamples" : "1 1",
+                        "shadowfilepath" : "shadow_" + obj.data.name + ".rib",
+                        "display" : {"output" : "shadow_" + obj.data.name + ".z",
+                                    "outtype" : "zfile",
+                                    "mode" : "z"}}}
+        renderpasses.append(shadowpass)
 
     def execute(self, context):
         #TODO: get objects and proxyobject properties from blender
@@ -359,6 +411,8 @@ class ExportChronoRender(bpy.types.Operator):
         global proxyObjects
         global ambient_proxy
 
+        renderpasses = [] 
+
         #TODO: custom_camera only appears in the local folder. Change that!
         filepath = os.path.join(self.directory, self.filename)
         fout = open(filepath, "w")
@@ -367,25 +421,10 @@ class ExportChronoRender(bpy.types.Operator):
         ##############
         #Camera stuff#
         ##############
-        camera_matrix = bpy.data.objects['Camera'].matrix_world
-        camera = bpy.data.objects['Camera']
-        camera_loc = bpy.data.objects['Camera'].location
-        camera_euler = bpy.data.objects['Camera'].rotation_euler
         cam_file_name = "custom_camera.rib"
         cam_file_path = os.path.join(self.directory, cam_file_name)
         cam_file = open(cam_file_path, 'w')
-
-        cam_fov = math.degrees(bpy.data.objects['Camera'].data.angle)
-        fov = 360.0*math.atan(16.0/camera.data.lens)/math.pi 
-
-        cam_file.write('Projection "perspective" "fov" [{}]\n'.format(fov))
-        cam_file.write("Scale 1 1 -1\n")
-        cam_file.write("Rotate {} 1 0 0\n".format(-math.degrees(camera_euler[0])))
-        cam_file.write("Rotate {} 0 1 0\n".format(-math.degrees(camera_euler[1])))
-        cam_file.write("Rotate {} 0 0 1\n".format(-math.degrees(camera_euler[2])))
-        cam_file.write("Translate {} {} {}\n".format(-camera_matrix[0][3],
-                                                    -camera_matrix[1][3],
-                                                    -camera_matrix[2][3]))
+        cam_file.write(self.camera_to_renderman(context, bpy.data.objects['Camera']))
 
         cam_file.close()
         #############
@@ -397,7 +436,7 @@ class ExportChronoRender(bpy.types.Operator):
 
         for i, obj in enumerate(bpy.context.scene.objects):
             if obj.type == 'LAMP':
-                light_string = "LightSource"
+                light_string = None
                 
                 e = obj.rotation_euler
                 M = e.to_matrix()
@@ -405,19 +444,26 @@ class ExportChronoRender(bpy.types.Operator):
                 # v.rotate(e)
                 # end_x, end_y, end_z = v
                 end_x, end_y, end_z = M*v
+
+                # x20 for point and spot intensity as a rough heuristic to get them looking the same in blender and renderman(matte shader)
                 if obj.data.type == 'SUN':
                     # intensity = obj.data.energy*
-                    light_string = 'LightSource "distantlight" {} "intensity" {} "lightcolor" [{} {} {}] "from" [{} {} {}] "to" [{} {} {}]\n'.format(i, obj.data.energy, obj.data.color[0], obj.data.color[1], obj.data.color[2], 0, 0, 0, end_x, end_y, end_z)
+                    if obj.data.shadow_method == 'NOSHADOW':
+                        light_string = 'LightSource "distantlight" {} "intensity" {} "lightcolor" [{} {} {}] "from" [{} {} {}] "to" [{} {} {}]\n'.format(i, obj.data.energy, obj.data.color[0], obj.data.color[1], obj.data.color[2], 0, 0, 0, end_x, end_y, end_z)
 
                 elif obj.data.type == 'POINT':
-                    light_string = 'LightSource "pointlight" {} "intensity" {} "lightcolor" [{} {} {}] "from" [{} {} {}]\n'.format(i, obj.data.energy, obj.data.color[0], obj.data.color[1], obj.data.color[2], obj.location.x, obj.location.y, obj.location.z)
+                    if obj.data.shadow_method == 'NOSHADOW':
+                        light_string = 'LightSource "pointlight" {} "intensity" {} "lightcolor" [{} {} {}] "from" [{} {} {}]\n'.format(i, obj.data.energy*20, obj.data.color[0], obj.data.color[1], obj.data.color[2], obj.location.x, obj.location.y, obj.location.z)
 
                 elif obj.data.type == 'SPOT':
                     delta_angle = obj.data.spot_size/2 * obj.data.spot_blend
-                    light_string = 'LightSource "spotlight" {} "intensity" {}  "coneangle" {} "conedeltaangle" {} "lightcolor" [{} {} {}] "from" [{} {} {}] "to" [{} {} {}]\n'.format(i, obj.data.energy, obj.data.spot_size/2.0, delta_angle, obj.data.color[0], obj.data.color[1], obj.data.color[2], obj.location.x, obj.location.y, obj.location.z, end_x+obj.location.x, end_y+obj.location.y, end_z+obj.location.z)
+                    if obj.data.shadow_method == 'NOSHADOW':
+                        light_string = 'LightSource "spotlight" {} "intensity" {}  "coneangle" {} "conedeltaangle" {} "lightcolor" [{} {} {}] "from" [{} {} {}] "to" [{} {} {}]\n'.format(i, obj.data.energy*20, obj.data.spot_size/2.0, delta_angle, obj.data.color[0], obj.data.color[1], obj.data.color[2], obj.location.x, obj.location.y, obj.location.z, end_x+obj.location.x, end_y+obj.location.y, end_z+obj.location.z)
+                    else:
+                        self.write_shadowspot(context, renderpasses, light_file, obj, end_x, end_y, end_z, delta_angle, i)
 
-
-                light_file.write(light_string)
+                if light_string != None:
+                    light_file.write(light_string)
 
 
         ambient_proxy.update()
@@ -432,23 +478,24 @@ class ExportChronoRender(bpy.types.Operator):
         renderobject = self.write_object(objects, is_proxy = False)
         renderobject += self.write_object(proxyObjects, is_proxy = True)
 
-        data_name = "./" + "_".join(fin_name.split("_")[:-1]) + "_*.dat"
+        data_name = "./data/" + "_".join(fin_name.split("_")[:-1]) + "_*.dat"
 
         resolution = "{} {}".format(bpy.data.scenes["Scene"].render.resolution_x, 
                                bpy.data.scenes["Scene"].render.resolution_y)
 
-        #TODO: ignore more than just one param?
-        #TODO: a basic background (default_scene.rib cut into things)
+        defaultpass = {
+                    "name": "defaultpass",
+                    "settings" : {
+                        "resolution" : resolution,
+                        "display" : {"output" : "out.tif"}}}
+        renderpasses.append(defaultpass)
+
         data = {"chronorender" : {
                     "rendersettings" : {"searchpaths" : "./"},
                     "camera" : [{"filename" : cam_file_name}],
                     "lighting" : [{"filename" : "custom_lighting.rib"}],
                     # "scene" : [{"filename" : "default_scene.rib"}],
-                    "renderpass" : [{
-                            "name" : "defaultpass",
-                            "settings" : {
-                                "resolution" : resolution,
-                                "display" : {"output" : "out.tif"}}}],
+                    "renderpass" : renderpasses ,
                     "simulation" : {
                         "data" : {
                             "datasource" : [{

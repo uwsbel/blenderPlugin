@@ -147,7 +147,17 @@ The other way to light a scene is to use blender's built in lights. In the
     "spot" light, the angle of the beam can be adjusted using the "Size"
     parameter under "Spot Shape".
 
-    Note: TODO: intensities do not currently match up between blender and renderman
+Other things to be aware of:
+    Once you start adding shaders, you WILL need to adjust the intensities and
+        colors of your lights.
+    Turning off shadows on the "sun" light type will likely make it look more
+        like what renderman will render.
+    Do NOT delete objects you have imported! The export will fail if you do. If
+        you want to see around them, you can toggle them invisible by cliking
+        on the little eye next to the object you wish to turn invisible (upper
+        right by default). THe little camera will toggle it invisible for 
+        rendering. 
+
 
 
 **File Format**
