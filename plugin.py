@@ -29,7 +29,8 @@ import yaml
 #TODO: intensity level somehow
 #TODO: shadows!
 #TODO: shadows currently take objects with colors and shaders, kill this and save time!
-#TODO: shadows seem to work with test scene but not with frame 30 of hammads foam. Why?
+#TODO: renderman multiple cores (qsub vs -p:16) vs renderman one instance per core
+#TODO: sun/distant light!
 
 #TODO/CHECKLIST: make file format (pos, rot, geom type, dimensions, group, velocity, pressure
 # in bitbucket 
@@ -47,7 +48,7 @@ bl_info = {
         "name": "Chrono::Render plugin",
         "description": "Allows for easy graphical manipulation of simulated data before rendering with a powerful renderman renderer",
         "author": "Daniel <Daphron> Kaczmarek",
-        "version": (0, 4),
+        "version": (0, 5),
         "blender": (2, 67, 1), #TODO: find minimum version
         "location": "File > Import > Import Chrono::Engine",
         "warning": "",
@@ -177,10 +178,12 @@ class Object:
 
     def update(self):
         """Grabs stuff like color, texture and stores them"""
-        #Color can be diffuse, specular, mirror, and subsurface scattering
-        if self.obj.active_material is None:
+        try:
             self.obj = bpy.context.scene.objects['Obj # {}'.format(self.index)]
-        self.color = (self.obj.active_material.diffuse_color[0], self.obj.active_material.diffuse_color[1], self.obj.active_material.diffuse_color[2])
+            self.color = (self.obj.active_material.diffuse_color[0], self.obj.active_material.diffuse_color[1], self.obj.active_material.diffuse_color[2])
+            self.mat = self.obj.active_material
+        except:
+            import pdb; pdb.set_trace()
 
 class ProxyObject(Object):
     def __init__(self, data, indicies):
@@ -206,11 +209,19 @@ class ProxyObject(Object):
         self.obj = bpy.context.active_object
 
     def update(self):
-        """Grabs stuff like color, texture and stores them"""
-        #Color can be diffuse, specular, mirror, and subsurface scattering
-        if self.obj.active_material is not None:
+        try:
+            self.obj = bpy.context.scene.objects['Proxy {}'.format(self.group)]
             self.color = (self.obj.active_material.diffuse_color[0], self.obj.active_material.diffuse_color[1], self.obj.active_material.diffuse_color[2])
             self.mat = self.obj.active_material
+        except:
+            import pdb; pdb.set_trace()
+
+    # def update(self):
+    #     """Grabs stuff like color, texture and stores them"""
+    #     #Color can be diffuse, specular, mirror, and subsurface scattering
+    #     if self.obj.active_material is not None:
+    #         self.color = (self.obj.active_material.diffuse_color[0], self.obj.active_material.diffuse_color[1], self.obj.active_material.diffuse_color[2])
+    #         self.mat = self.obj.active_material
 
 def configInitialScene():
     # bpy.ops.object.delete()
@@ -363,13 +374,20 @@ class ExportChronoRender(bpy.types.Operator):
             fov = 360.0*math.atan(16.0/camera.data.lens)/math.pi 
         except AttributeError:
             if hasattr(obj.data, "spot_size"):
-                fov = obj.data.spot_size
+                fov = math.degrees(obj.data.spot_size)
             else:
                 pass
 
         out = ''
 
-        out += ('Projection "perspective" "fov" [{}]\n'.format(fov))
+        if hasattr(obj.data, "type"):
+            if obj.data.type == 'SUN':
+                out += ('Projection "orthographic"\n')
+            else:
+                out += ('Projection "perspective" "fov" [{}]\n'.format(fov))
+        else:
+            out += ('Projection "perspective" "fov" [{}]\n'.format(fov))
+            
         out += ("Scale 1 1 -1\n")
         out += ("Rotate {} 1 0 0\n".format(-math.degrees(camera_euler[0])))
         out += ("Rotate {} 0 1 0\n".format(-math.degrees(camera_euler[1])))
@@ -390,6 +408,29 @@ class ExportChronoRender(bpy.types.Operator):
         light_file.write(light_string)
 
         #TODO: heuristic for resolution of pass
+        shadowpass = {
+                    "name": "shadowpass" + str(index),
+                    "type": "shadow",
+                    "settings" : {
+                        "resolution" : "512 512 1",
+                        "shadingrate" : 1.0,
+                        "pixelsamples" : "1 1",
+                        "shadowfilepath" : "shadow_" + obj.data.name + ".rib",
+                        "display" : {"output" : "shadow_" + obj.data.name + ".z",
+                                    "outtype" : "zfile",
+                                    "mode" : "z"}}}
+        renderpasses.append(shadowpass)
+
+    def write_sun(self, context, renderpasses, light_file, obj, end_x, end_y, end_z, index):
+        name = "shadow_" + obj.data.name 
+        shadowmap_name = name + ".rib"
+        shadowmap_file_path = os.path.join(self.directory, shadowmap_name)
+        shadowmap_file = open(shadowmap_file_path, 'w')
+        shadowmap_file.write(self.camera_to_renderman(context, obj))
+
+        light_string = 'LightSource "shadowdistant" {} "intensity" {} "lightcolor" [{} {} {}] "from" [{} {} {}] "to" [{} {} {}] "shadowname" ["{}"]\n'.format(index, obj.data.energy, obj.data.color[0], obj.data.color[1], obj.data.color[2], 0, 0, 0, end_x, end_y, end_z, name+".shd")
+        light_file.write(light_string)
+
         shadowpass = {
                     "name": "shadowpass" + str(index),
                     "type": "shadow",
@@ -450,6 +491,8 @@ class ExportChronoRender(bpy.types.Operator):
                     # intensity = obj.data.energy*
                     if obj.data.shadow_method == 'NOSHADOW':
                         light_string = 'LightSource "distantlight" {} "intensity" {} "lightcolor" [{} {} {}] "from" [{} {} {}] "to" [{} {} {}]\n'.format(i, obj.data.energy, obj.data.color[0], obj.data.color[1], obj.data.color[2], 0, 0, 0, end_x, end_y, end_z)
+                    else:
+                        self.write_sun(context, renderpasses, light_file, obj, end_x, end_y, end_z, i)
 
                 elif obj.data.type == 'POINT':
                     if obj.data.shadow_method == 'NOSHADOW':

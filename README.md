@@ -150,8 +150,8 @@ The other way to light a scene is to use blender's built in lights. In the
 Other things to be aware of:
     Once you start adding shaders, you WILL need to adjust the intensities and
         colors of your lights.
-    Turning off shadows on the "sun" light type will likely make it look more
-        like what renderman will render.
+    Turning off the shadows in blender turns off the shadows in renderman. They
+        are ON by default so make sure you want it that way!
     Do NOT delete objects you have imported! The export will fail if you do. If
         you want to see around them, you can toggle them invisible by cliking
         on the little eye next to the object you wish to turn invisible (upper
