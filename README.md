@@ -2,6 +2,24 @@
 Requirements: blender 2.6x, python3, and pyyaml should all be installed on 
     the machine from which you will be running blender.
 
+The Short Way (requires access to euler):
+1. Copy the stable version of the blender plugin from euler at
+    /home/groups/sbel/rendering/chrono-render/plugins/blender
+    put this file in the the proper place on your machine.
+
+    On linux blender addons go in:
+    /home/$user/.config/blender/$version/scripts/addons
+    Windows XP:
+    C:\Documents and Settings\%username%\Application Data\Blender Foundation\Blender\2.6x\scripts\addons
+    Windows7:
+    C:\Users\%username%\AppData\Roaming\Blender Foundation\Blender\2.6x\scripts\addons
+
+2. Enable the blender plugin by opening blender and going to File -> User
+        Preferences -> Addons and clicking the checkbox next to Import-Export:
+        Chrono::Render plugin. Hit Save User Settings at the bottom and you
+        are done!
+
+The Long Way:
 Note: this is written assuming you will run blender on a local machine
 and then render on euler.
 
