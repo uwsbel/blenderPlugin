@@ -3,7 +3,6 @@ import math
 import mathutils
 import os
 import yaml
-#TODO: rotation of objects and cylinder,cones, elipsoids working. Then lights
 #TODO: shader selection inside blender?
 
 # be able to add materials to it
@@ -21,10 +20,8 @@ import yaml
 #TODO: actually take input from blender for the export (a menu or something) colors and textures
 #TODO: seclecting which proxys and which objs from a blender menu
 #TODO: Why is renderman's window larger than blender's for rendering
-#TODO: render hammad's thing and figure out how to deal with particles in only
 #some of the files
 #TODO: prman has holes in the bottom of the cylinders, aqsis doesn't. Why?
-#TODO: lighting from blender to renderman
 
 #TODO: intensity level somehow
 #TODO: shadows!
@@ -48,7 +45,7 @@ bl_info = {
         "name": "Chrono::Render plugin",
         "description": "Allows for easy graphical manipulation of simulated data before rendering with a powerful renderman renderer",
         "author": "Daniel <Daphron> Kaczmarek",
-        "version": (0, 5),
+        "version": (0, 7),
         "blender": (2, 67, 1), #TODO: find minimum version
         "location": "File > Import > Import Chrono::Engine",
         "warning": "",
@@ -152,7 +149,6 @@ class Object:
             bpy.ops.mesh.primitive_uv_sphere_add(size=self.ep[0], location=(self.x, self.y, self.z), rotation=self.euler)
         # Ellipsoid
         elif self.obj_type == "ellipsoid":
-            #TODO: The elipses are just WRONG.
             #ep[0] is the radius, ep[1] is the length in the direction of rotation
             bpy.ops.mesh.primitive_uv_sphere_add(size=1.0, location=(self.x, self.y, self.z))
             #The right way?
@@ -404,7 +400,7 @@ class ExportChronoRender(bpy.types.Operator):
         shadowmap_file = open(shadowmap_file_path, 'w')
         shadowmap_file.write(self.camera_to_renderman(context, obj))
 
-        light_string = 'LightSource "shadowspot" {} "intensity" {}  "coneangle" {} "conedeltaangle" {} "lightcolor" [{} {} {}] "from" [{} {} {}] "to" [{} {} {}] "shadowname" ["{}"]\n'.format(index, obj.data.energy*20, obj.data.spot_size/2.0, delta_angle, obj.data.color[0], obj.data.color[1], obj.data.color[2], obj.location.x, obj.location.y, obj.location.z, end_x+obj.location.x, end_y+obj.location.y, end_z+obj.location.z, name+".shd")
+        light_string = 'LightSource "shadowspot" {} "intensity" {}  "coneangle" {} "conedeltaangle" {} "lightcolor" [{} {} {}] "from" [{} {} {}] "to" [{} {} {}] "shadowname" ["{}"]\n'.format(index, obj.data.energy*30, obj.data.spot_size/2.0, delta_angle, obj.data.color[0], obj.data.color[1], obj.data.color[2], obj.location.x, obj.location.y, obj.location.z, end_x+obj.location.x, end_y+obj.location.y, end_z+obj.location.z, name+".shd")
         light_file.write(light_string)
 
         #TODO: heuristic for resolution of pass
@@ -443,6 +439,48 @@ class ExportChronoRender(bpy.types.Operator):
                                     "outtype" : "zfile",
                                     "mode" : "z"}}}
         renderpasses.append(shadowpass)
+
+    def write_shadowpoint(self, context, renderpasses, light_file, obj, index):
+        light_string = 'LightSource "shadowpoint" {} "intensity" {} "lightcolor" [{} {} {}] "from" [{} {} {}]'.format(index, obj.data.energy, obj.data.color[0], obj.data.color[1], obj.data.color[2], obj.location.x, obj.location.y, obj.location.z)
+
+        name = "shadow_" + obj.data.name 
+        shadowmap_name_base = name + ".rib"
+
+        rotations = {'px': 'Rotate -90.0 0.0 1.0 0.0',
+                    'py': 'Rotate 90.0 1.0 0.0 0.0',
+                    'pz': 'Rotate 0.0 0.0 1.0 0.0',
+                    'nx': 'Rotate 90.0 0.0 1.0 0.0',
+                    'ny': 'Rotate -90.0 1.0 0.0 0.0',
+                    'nz': 'Rotate 180 0.0 1.0 0.0'}
+        for end in ('px', 'py', 'pz', 'nx', 'ny', 'nz'):
+            shadowmap_name = end + shadowmap_name_base
+            shadowmap_file_path = os.path.join(self.directory, shadowmap_name)
+            shadowmap_file = open(shadowmap_file_path, 'w')
+
+            light_string += ' "sf{}" ["{}"]'.format(end, end + "shadow_" + obj.data.name + ".shd")
+            
+            shadowmap_file.write('Projection "perspective" "fov" [95.0]\n')
+            # shadowmap_file.write("Scale 1 1 -1\n")
+            shadowmap_file.write(rotations[end] + "\n")
+            shadowmap_file.write('Translate {} {} {}\n'.format(-obj.location.x, -obj.location.y, -obj.location.z))
+
+            shadowpass = {
+                        "name": "shadowpass" + str(index) + "_" + end,
+                        "type": "shadow",
+                        "settings" : {
+                            "resolution" : "512 512 1",
+                            "shadingrate" : 1.0,
+                            "pixelsamples" : "1 1",
+                            "shadowfilepath" : shadowmap_name,
+                            "display" : {"output" : end + "shadow_" + obj.data.name + ".z",
+                                        "outtype" : "zfile",
+                                        "mode" : "z"}}}
+
+            renderpasses.append(shadowpass)
+
+
+        light_string += '\n'
+        light_file.write(light_string)
 
     def execute(self, context):
         #TODO: get objects and proxyobject properties from blender
@@ -497,6 +535,8 @@ class ExportChronoRender(bpy.types.Operator):
                 elif obj.data.type == 'POINT':
                     if obj.data.shadow_method == 'NOSHADOW':
                         light_string = 'LightSource "pointlight" {} "intensity" {} "lightcolor" [{} {} {}] "from" [{} {} {}]\n'.format(i, obj.data.energy*20, obj.data.color[0], obj.data.color[1], obj.data.color[2], obj.location.x, obj.location.y, obj.location.z)
+                    else:
+                        self.write_shadowpoint(context, renderpasses, light_file, obj, i)
 
                 elif obj.data.type == 'SPOT':
                     delta_angle = obj.data.spot_size/2 * obj.data.spot_blend
