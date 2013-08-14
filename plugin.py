@@ -5,6 +5,9 @@ import os
 import yaml
 #TODO: shader selection inside blender?
 
+#TODO:
+#currently using rough heuristics for ScreenWindow (sun shadows) and light intensity. Improve
+
 # be able to add materials to it
 # click and have all the scripts built
 # one proxy object per type in a data column
@@ -27,7 +30,7 @@ import yaml
 #TODO: shadows!
 #TODO: shadows currently take objects with colors and shaders, kill this and save time!
 #TODO: renderman multiple cores (qsub vs -p:16) vs renderman one instance per core
-#TODO: sun/distant light!
+#TODO: sun ScreenWindow heuristic! (should ALWAYS overestimate, NEVER under)
 
 #TODO/CHECKLIST: make file format (pos, rot, geom type, dimensions, group, velocity, pressure
 # in bitbucket 
@@ -58,6 +61,9 @@ DEFAULT_COLOR = (0.4, 0.4, 0.6)
 fin = ""
 objects = ""
 proxyObjects = ""
+# max_dimensions = (0, 0, 0, 0, 0, 0) #x_min, x_max, y_min, y_max, z_min, z_max
+max_dim = 1
+min_dim = 1
 
 class AmbientLightProxy:
     def __init__(self):
@@ -234,6 +240,16 @@ class ImportChronoRender(bpy.types.Operator):
         context.window_manager.fileselect_add(self)
         return {'RUNNING_MODAL'}
 
+    def process_max_dimensions(self, data):
+        global max_dim
+        global min_dim
+        max_length = max(float(data[x]) for x in range(10,len(data)) if data[x] is not '\n') 
+        for coord in (data[2:5]):
+            if float(coord) + max_length > max_dim:
+                max_dim = float(coord) + max_length
+            if float(coord) - max_length < min_dim:
+                min_dim = float(coord) - max_length
+
     def execute(self, context):
         global fin_name
         global objects
@@ -251,6 +267,7 @@ class ImportChronoRender(bpy.types.Operator):
         fin = open(filepath, "r")
 
         for i, line in enumerate(fin):
+            self.process_max_dimensions(line.split(","))
             if line.split(",")[0].lower() == "individual":
                 objects.append(Object(line.split(",")))
                 print("Object {}".format(i))
@@ -418,11 +435,14 @@ class ExportChronoRender(bpy.types.Operator):
         renderpasses.append(shadowpass)
 
     def write_sun(self, context, renderpasses, light_file, obj, end_x, end_y, end_z, index):
+        global max_dim
+        global min_dim
         name = "shadow_" + obj.data.name 
         shadowmap_name = name + ".rib"
         shadowmap_file_path = os.path.join(self.directory, shadowmap_name)
         shadowmap_file = open(shadowmap_file_path, 'w')
         shadowmap_file.write(self.camera_to_renderman(context, obj))
+        shadowmap_file.write('ScreenWindow {} {} {} {}'.format(min_dim, max_dim, min_dim, max_dim))
 
         light_string = 'LightSource "shadowdistant" {} "intensity" {} "lightcolor" [{} {} {}] "from" [{} {} {}] "to" [{} {} {}] "shadowname" ["{}"]\n'.format(index, obj.data.energy, obj.data.color[0], obj.data.color[1], obj.data.color[2], 0, 0, 0, end_x, end_y, end_z, name+".shd")
         light_file.write(light_string)

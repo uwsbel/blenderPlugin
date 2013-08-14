@@ -175,7 +175,11 @@ Other things to be aware of:
         on the little eye next to the object you wish to turn invisible (upper
         right by default). THe little camera will toggle it invisible for 
         rendering. 
-
+    In blender, the sun will light the same no matter where you place it, but
+        in order to get correct shadows efficently with renderman, there are a
+        few restrictions. If you ignore these restrictions your shadows WILL be 
+        messed up. The sun should just outside of the scene, and the ray coming
+        out from it should pass roughly through the origin.
 
 
 **File Format**
