@@ -30,7 +30,7 @@ import yaml
 #TODO: shadows!
 #TODO: shadows currently take objects with colors and shaders, kill this and save time!
 #TODO: renderman multiple cores (qsub vs -p:16) vs renderman one instance per core
-#TODO: sun ScreenWindow heuristic! (should ALWAYS overestimate, NEVER under)
+#TODO: shadow_pass .shd file is the same for all frames. Fix somehow
 
 #TODO/CHECKLIST: make file format (pos, rot, geom type, dimensions, group, velocity, pressure
 # in bitbucket 
@@ -412,6 +412,7 @@ class ExportChronoRender(bpy.types.Operator):
     
     def write_shadowspot(self, context, renderpasses, light_file, obj, end_x, end_y, end_z, delta_angle, index):
         name = "shadow_" + obj.data.name 
+        name = name.replace(".", "_")
         shadowmap_name = name + ".rib"
         shadowmap_file_path = os.path.join(self.directory, shadowmap_name)
         shadowmap_file = open(shadowmap_file_path, 'w')
@@ -438,6 +439,7 @@ class ExportChronoRender(bpy.types.Operator):
         global max_dim
         global min_dim
         name = "shadow_" + obj.data.name 
+        name = name.replace(".", "_")
         shadowmap_name = name + ".rib"
         shadowmap_file_path = os.path.join(self.directory, shadowmap_name)
         shadowmap_file = open(shadowmap_file_path, 'w')
@@ -461,9 +463,10 @@ class ExportChronoRender(bpy.types.Operator):
         renderpasses.append(shadowpass)
 
     def write_shadowpoint(self, context, renderpasses, light_file, obj, index):
-        light_string = 'LightSource "shadowpoint" {} "intensity" {} "lightcolor" [{} {} {}] "from" [{} {} {}]'.format(index, obj.data.energy, obj.data.color[0], obj.data.color[1], obj.data.color[2], obj.location.x, obj.location.y, obj.location.z)
+        light_string = 'LightSource "shadowpoint" {} "intensity" {} "lightcolor" [{} {} {}] "from" [{} {} {}]'.format(index, obj.data.energy*20.0, obj.data.color[0], obj.data.color[1], obj.data.color[2], obj.location.x, obj.location.y, obj.location.z)
 
         name = "shadow_" + obj.data.name 
+        name = name.replace(".", "_")
         shadowmap_name_base = name + ".rib"
 
         rotations = {'px': 'Rotate -90.0 0.0 1.0 0.0',
