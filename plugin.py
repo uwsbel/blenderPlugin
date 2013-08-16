@@ -26,6 +26,11 @@ import yaml
 #some of the files
 #TODO: prman has holes in the bottom of the cylinders, aqsis doesn't. Why?
 
+#TODO: PERFORMANCE:
+#   remove shaders and colors from shadow passes
+#   clipping panes
+#   spots instead of points if doable
+#   
 #TODO: intensity level somehow
 #TODO: shadows!
 #TODO: shadows currently take objects with colors and shaders, kill this and save time!
@@ -413,6 +418,7 @@ class ExportChronoRender(bpy.types.Operator):
     def write_shadowspot(self, context, renderpasses, light_file, obj, end_x, end_y, end_z, delta_angle, index):
         name = "shadow_" + obj.data.name 
         name = name.replace(".", "_")
+        correct_name = obj.data.name.replace(".", "_")
         shadowmap_name = name + ".rib"
         shadowmap_file_path = os.path.join(self.directory, shadowmap_name)
         shadowmap_file = open(shadowmap_file_path, 'w')
@@ -429,8 +435,8 @@ class ExportChronoRender(bpy.types.Operator):
                         "resolution" : "512 512 1",
                         "shadingrate" : 1.0,
                         "pixelsamples" : "1 1",
-                        "shadowfilepath" : "shadow_" + obj.data.name + ".rib",
-                        "display" : {"output" : "shadow_" + obj.data.name + ".z",
+                        "shadowfilepath" : "shadow_" + correct_name+ ".rib",
+                        "display" : {"output" : "shadow_" + correct_name + ".z",
                                     "outtype" : "zfile",
                                     "mode" : "z"}}}
         renderpasses.append(shadowpass)
@@ -440,6 +446,7 @@ class ExportChronoRender(bpy.types.Operator):
         global min_dim
         name = "shadow_" + obj.data.name 
         name = name.replace(".", "_")
+        correct_name = obj.data.name.replace(".", "_")
         shadowmap_name = name + ".rib"
         shadowmap_file_path = os.path.join(self.directory, shadowmap_name)
         shadowmap_file = open(shadowmap_file_path, 'w')
@@ -456,8 +463,8 @@ class ExportChronoRender(bpy.types.Operator):
                         "resolution" : "512 512 1",
                         "shadingrate" : 1.0,
                         "pixelsamples" : "1 1",
-                        "shadowfilepath" : "shadow_" + obj.data.name + ".rib",
-                        "display" : {"output" : "shadow_" + obj.data.name + ".z",
+                        "shadowfilepath" : "shadow_" + correct_name + ".rib",
+                        "display" : {"output" : "shadow_" + correct_name + ".z",
                                     "outtype" : "zfile",
                                     "mode" : "z"}}}
         renderpasses.append(shadowpass)
@@ -467,6 +474,7 @@ class ExportChronoRender(bpy.types.Operator):
 
         name = "shadow_" + obj.data.name 
         name = name.replace(".", "_")
+        correct_name = obj.data.name.replace(".", "_")
         shadowmap_name_base = name + ".rib"
 
         rotations = {'px': 'Rotate -90.0 0.0 1.0 0.0',
@@ -480,7 +488,7 @@ class ExportChronoRender(bpy.types.Operator):
             shadowmap_file_path = os.path.join(self.directory, shadowmap_name)
             shadowmap_file = open(shadowmap_file_path, 'w')
 
-            light_string += ' "sf{}" ["{}"]'.format(end, end + "shadow_" + obj.data.name + ".shd")
+            light_string += ' "sf{}" ["{}"]'.format(end, end + "shadow_" + correct_name + ".shd")
             
             shadowmap_file.write('Projection "perspective" "fov" [95.0]\n')
             # shadowmap_file.write("Scale 1 1 -1\n")
@@ -495,7 +503,7 @@ class ExportChronoRender(bpy.types.Operator):
                             "shadingrate" : 1.0,
                             "pixelsamples" : "1 1",
                             "shadowfilepath" : shadowmap_name,
-                            "display" : {"output" : end + "shadow_" + obj.data.name + ".z",
+                            "display" : {"output" : end + "shadow_" + correct_name + ".z",
                                         "outtype" : "zfile",
                                         "mode" : "z"}}}
 
@@ -537,7 +545,7 @@ class ExportChronoRender(bpy.types.Operator):
         light_file = open(light_file_path, 'w')
 
         for i, obj in enumerate(bpy.context.scene.objects):
-            if obj.type == 'LAMP':
+            if obj.type == 'LAMP' and obj.hide_render == True:
                 light_string = None
                 
                 e = obj.rotation_euler
