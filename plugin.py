@@ -7,45 +7,18 @@ import yaml
 
 #TODO:
 #currently using rough heuristics for ScreenWindow (sun shadows) and light intensity. Improve
+#currently using NO user input for ao and color bleeding quality parameters!
 
-# be able to add materials to it
-# click and have all the scripts built
-# one proxy object per type in a data column
-# one script that prepares for cluster
-# one script that does one frame for you
-
-# TODO: currently all objects represented by one proxy must have the SAME GEOMETRY
-# eg. sphere radius 3, cannot also have spheres of radius 2
-#
-#OTHER NEEDED/WANTED INFO:
-# camera loc, filepath, scaling factor, frame range, data file
-
-#TODO: actually take input from blender for the export (a menu or something) colors and textures
-#TODO: seclecting which proxys and which objs from a blender menu
 #TODO: Why is renderman's window larger than blender's for rendering
 #some of the files
-#TODO: prman has holes in the bottom of the cylinders, aqsis doesn't. Why?
 
 #TODO: PERFORMANCE:
 #   remove shaders and colors from shadow passes
 #   clipping panes
 #   spots instead of points if doable#
 #   multicore stuff (share shadowmaps, etc)
-#TODO: intensity level somehow
-#TODO: shadows!
+#    renderman multiple cores (qsub vs -p:16) vs renderman one instance per core
 #TODO: shadows currently take objects with colors and shaders, kill this and save time!
-#TODO: renderman multiple cores (qsub vs -p:16) vs renderman one instance per core
-#TODO: shadow_pass .shd file is the same for all frames. Fix somehow
-
-#TODO/CHECKLIST: make file format (pos, rot, geom type, dimensions, group, velocity, pressure
-# in bitbucket 
-# render the file. in blender(headless?), then using renderman 
-# full animation
-# fancier stuff (moving camra/lights or fancy materials (shadows, reflection, ambient and global illumination)
-
-
-# Converts to video
-# ffmpeg -f image2 -r 2 -i out.%01d.tif -c:v libx264  test.mp4
 
 #Resolution and shading rate affect time and quality of render
 
@@ -53,7 +26,7 @@ bl_info = {
         "name": "Chrono::Render plugin",
         "description": "Allows for easy graphical manipulation of simulated data before rendering with a powerful renderman renderer",
         "author": "Daniel <Daphron> Kaczmarek",
-        "version": (0, 7),
+        "version": (0, 8),
         "blender": (2, 67, 1), #TODO: find minimum version
         "location": "File > Import > Import Chrono::Engine",
         "warning": "",
@@ -66,7 +39,6 @@ DEFAULT_COLOR = (0.4, 0.4, 0.6)
 fin = ""
 objects = ""
 proxyObjects = ""
-# max_dimensions = (0, 0, 0, 0, 0, 0) #x_min, x_max, y_min, y_max, z_min, z_max
 max_dim = 1
 min_dim = 1
 
