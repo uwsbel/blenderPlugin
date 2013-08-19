@@ -180,6 +180,10 @@ Other things to be aware of:
         few restrictions. If you ignore these restrictions your shadows WILL be 
         messed up. The sun should just outside of the scene, and the ray coming
         out from it should pass roughly through the origin.
+    Enabling Ambient Occlusion is done by checking the box under the world tab.
+        While there are sliders for settings, these will NOT affect the renderman
+        render at this time because sane renderman defaults are beyond blender's
+        capability. You DO need to check that box though!
 
 
 **File Format**

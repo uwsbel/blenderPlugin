@@ -29,8 +29,8 @@ import yaml
 #TODO: PERFORMANCE:
 #   remove shaders and colors from shadow passes
 #   clipping panes
-#   spots instead of points if doable
-#   
+#   spots instead of points if doable#
+#   multicore stuff (share shadowmaps, etc)
 #TODO: intensity level somehow
 #TODO: shadows!
 #TODO: shadows currently take objects with colors and shaders, kill this and save time!
@@ -513,6 +513,21 @@ class ExportChronoRender(bpy.types.Operator):
         light_string += '\n'
         light_file.write(light_string)
 
+    def write_ambient_occlusion(self, context, renderpasses):
+        resolution = "{} {}".format(bpy.data.scenes["Scene"].render.resolution_x,
+                                bpy.data.scenes["Scene"].render.resolution_y)
+        shadowpass = {
+                "name": "ambientpass",
+                "type": "ao",
+                "settings": {
+                    "resolution": resolution,
+                    "display": {"output" : "out.tif"}},
+                "shader": {
+                    "name": "occlusionlight.sl",
+                    "samples": 256}} #TODO: some nice way of setting samples
+
+        renderpasses.append(shadowpass)
+
     def execute(self, context):
         #TODO: get objects and proxyobject properties from blender
         # into the yaml file
@@ -545,7 +560,7 @@ class ExportChronoRender(bpy.types.Operator):
         light_file = open(light_file_path, 'w')
 
         for i, obj in enumerate(bpy.context.scene.objects):
-            if obj.type == 'LAMP' and obj.hide_render == True:
+            if obj.type == 'LAMP' and obj.hide_render == False:
                 light_string = None
                 
                 e = obj.rotation_euler
@@ -585,6 +600,11 @@ class ExportChronoRender(bpy.types.Operator):
         light_file.write(light_string)
         light_file.close()
 
+        #Ambient Occlusion
+        if bpy.context.scene.world.light_settings.use_ambient_occlusion:
+            self.write_ambient_occlusion(context, renderpasses)
+
+
         ##########
         #The Rest#
         ##########
@@ -602,7 +622,8 @@ class ExportChronoRender(bpy.types.Operator):
                     "settings" : {
                         "resolution" : resolution,
                         "display" : {"output" : "out.tif"}}}
-        renderpasses.append(defaultpass)
+        if not bpy.context.scene.world.light_settings.use_ambient_occlusion:
+            renderpasses.append(defaultpass)
 
         data = {"chronorender" : {
                     "rendersettings" : {"searchpaths" : "./"},
