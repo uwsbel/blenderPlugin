@@ -184,7 +184,12 @@ Other things to be aware of:
         While there are sliders for settings, these will NOT affect the renderman
         render at this time because sane renderman defaults are beyond blender's
         capability. You DO need to check that box though!
-
+    Enabling Color Bleeding is done by checking the Indirect Lighting box under
+        the world tab. The bounces slider may be used to get more bounces but
+        one is reccomended. More bounces = more time. In order to
+        see something close to the render in blender, you must go under Gather
+        and change from raytrace to approximate. This enables colorbleeding in
+        blender but is not required for the renderman render.
 
 **File Format**
 See FileFormat.txt

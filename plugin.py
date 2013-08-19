@@ -513,7 +513,7 @@ class ExportChronoRender(bpy.types.Operator):
         light_string += '\n'
         light_file.write(light_string)
 
-    def write_ambient_occlusion(self, context, renderpasses):
+    def write_ambient_occlusion(self, context, renderpasses, shader):
         resolution = "{} {}".format(bpy.data.scenes["Scene"].render.resolution_x,
                                 bpy.data.scenes["Scene"].render.resolution_y)
         shadowpass = {
@@ -521,9 +521,10 @@ class ExportChronoRender(bpy.types.Operator):
                 "type": "ao",
                 "settings": {
                     "resolution": resolution,
+                    "bounces": bpy.context.scene.world.light_settings.indirect_bounces,
                     "display": {"output" : "out.tif"}},
                 "shader": {
-                    "name": "occlusionlight.sl",
+                    "name": shader,
                     "samples": 256}} #TODO: some nice way of setting samples
 
         renderpasses.append(shadowpass)
@@ -600,9 +601,11 @@ class ExportChronoRender(bpy.types.Operator):
         light_file.write(light_string)
         light_file.close()
 
-        #Ambient Occlusion
-        if bpy.context.scene.world.light_settings.use_ambient_occlusion:
-            self.write_ambient_occlusion(context, renderpasses)
+        #Ambient Occlusion/Color Bleeding
+        if bpy.context.scene.world.light_settings.use_indirect_light:
+            self.write_ambient_occlusion(context, renderpasses, "colorbleedinglight.sl")
+        elif bpy.context.scene.world.light_settings.use_ambient_occlusion:
+            self.write_ambient_occlusion(context, renderpasses, "occlusionlight.sl")
 
 
         ##########
@@ -622,7 +625,7 @@ class ExportChronoRender(bpy.types.Operator):
                     "settings" : {
                         "resolution" : resolution,
                         "display" : {"output" : "out.tif"}}}
-        if not bpy.context.scene.world.light_settings.use_ambient_occlusion:
+        if not bpy.context.scene.world.light_settings.use_ambient_occlusion and not bpy.context.scene.world.light_settings.use_indirect_light:
             renderpasses.append(defaultpass)
 
         data = {"chronorender" : {
