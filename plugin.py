@@ -5,6 +5,8 @@ import os
 import yaml
 #TODO: shader selection inside blender?
 
+#TODO: walltime for one frame instead of for the whole big render?
+
 #TODO:
 #currently using rough heuristics for ScreenWindow (sun shadows) and light intensity. Improve
 #currently using NO user input for ao and color bleeding quality parameters!
@@ -13,12 +15,11 @@ import yaml
 #some of the files
 
 #TODO: PERFORMANCE:
-#   remove shaders and colors from shadow passes
 #   clipping panes
 #   spots instead of points if doable#
 #   multicore stuff (share shadowmaps, etc)
 #    renderman multiple cores (qsub vs -p:16) vs renderman one instance per core
-#TODO: shadows currently take objects with colors and shaders, kill this and save time!
+#   a way to remove background images from shadowpass 
 
 #Resolution and shading rate affect time and quality of render
 
@@ -26,7 +27,7 @@ bl_info = {
         "name": "Chrono::Render plugin",
         "description": "Allows for easy graphical manipulation of simulated data before rendering with a powerful renderman renderer",
         "author": "Daniel <Daphron> Kaczmarek",
-        "version": (0, 8),
+        "version": (0, 9),
         "blender": (2, 67, 1), #TODO: find minimum version
         "location": "File > Import > Import Chrono::Engine",
         "warning": "",
