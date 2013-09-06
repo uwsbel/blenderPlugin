@@ -245,6 +245,7 @@ class ImportChronoRender(bpy.types.Operator):
         global proxyObjects
         global ambient_proxy
         global extra_geometry_index
+        global fin_dir
         # filename = "/home/xeno/repos/blender-plugin/plugins/blender/blender_input_test.dat"
         # individualObjectsIndicies = [1,2,3,4, 5, 6] #LINE NUMBERS
 
@@ -253,6 +254,7 @@ class ImportChronoRender(bpy.types.Operator):
 
         fin_name = self.filename
         filepath = os.path.join(self.directory, self.filename)
+        fin_dir = self.directory
 
         fin = open(filepath, "r")
 
@@ -559,6 +561,7 @@ class ExportChronoRender(bpy.types.Operator):
         global objects
         global proxyObjects
         global ambient_proxy
+        global fin_path
 
         renderpasses = [] 
 
@@ -715,7 +718,19 @@ class ExportChronoRender(bpy.types.Operator):
         yaml.safe_dump(data, fout)
 
         print("Export complete! (yes really)")
+        print("Compression beginning")
+        self.compress(fin_name, fin_path, self.filename, self.directory)
+        self.compress(self.directory,fin_path)
         return {'FINISHED'}
+
+    def compress(self, fin_name, fin_path, fout_name, fout_path, force_data=False):
+        data_zipped_path = os.path.join(fout_path, "data.tar.gz")
+        if not os.path.exists(data_zipped_path) or force_data == True:
+            with tarfile.open("out.tar.gz", "w:gz") as tar:
+                tar.add(fin_path)
+        for 
+
+
 
 def add_exportChronoRenderButton(self, context):
     self.layout.operator(
