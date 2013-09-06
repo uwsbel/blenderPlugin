@@ -3,6 +3,7 @@ import math
 import mathutils
 import os
 import yaml
+import tarfile
 #TODO: shader selection inside blender?
 
 #TODO: walltime for one frame instead of for the whole big render?
@@ -445,7 +446,7 @@ class ExportChronoRender(bpy.types.Operator):
         name = name.replace(".", "_")
         correct_name = obj.data.name.replace(".", "_")
         shadowmap_name = name + ".rib"
-        shadowmap_file_path = os.path.join(self.directory, shadowmap_name)
+        shadowmap_file_path = os.path.join(self.fout_dir, shadowmap_name)
         shadowmap_file = open(shadowmap_file_path, 'w')
         shadowmap_file.write(self.camera_to_renderman(context, obj))
 
@@ -473,7 +474,7 @@ class ExportChronoRender(bpy.types.Operator):
         name = name.replace(".", "_")
         correct_name = obj.data.name.replace(".", "_")
         shadowmap_name = name + ".rib"
-        shadowmap_file_path = os.path.join(self.directory, shadowmap_name)
+        shadowmap_file_path = os.path.join(self.fout_dir, shadowmap_name)
         shadowmap_file = open(shadowmap_file_path, 'w')
         shadowmap_file.write(self.camera_to_renderman(context, obj))
         shadowmap_file.write('ScreenWindow {} {} {} {}'.format(min_dim, max_dim, min_dim, max_dim))
@@ -510,7 +511,7 @@ class ExportChronoRender(bpy.types.Operator):
                     'nz': 'Rotate 180 0.0 1.0 0.0'}
         for end in ('px', 'py', 'pz', 'nx', 'ny', 'nz'):
             shadowmap_name = end + shadowmap_name_base
-            shadowmap_file_path = os.path.join(self.directory, shadowmap_name)
+            shadowmap_file_path = os.path.join(self.fout_dir, shadowmap_name)
             shadowmap_file = open(shadowmap_file_path, 'w')
 
             light_string += ' "sf{}" ["{}"]'.format(end, end + "shadow_" + correct_name + ".shd")
@@ -561,12 +562,16 @@ class ExportChronoRender(bpy.types.Operator):
         global objects
         global proxyObjects
         global ambient_proxy
-        global fin_path
+        global fin_dir
 
         renderpasses = [] 
 
-        #TODO: custom_camera only appears in the local folder. Change that!
-        filepath = os.path.join(self.directory, self.filename)
+        self.fout_dir = os.path.join(self.directory, "RENDERMAN")
+
+        if not os.path.exists(self.fout_dir):
+            os.makedirs(self.fout_dir)
+
+        filepath = os.path.join(self.fout_dir, self.filename)
         fout = open(filepath, "w")
         print("Export beginning")
 
@@ -574,7 +579,7 @@ class ExportChronoRender(bpy.types.Operator):
         #Camera stuff#
         ##############
         cam_file_name = "custom_camera.rib"
-        cam_file_path = os.path.join(self.directory, cam_file_name)
+        cam_file_path = os.path.join(self.fout_dir, cam_file_name)
         cam_file = open(cam_file_path, 'w')
         cam_file.write(self.camera_to_renderman(context, bpy.data.objects['Camera']))
 
@@ -583,7 +588,7 @@ class ExportChronoRender(bpy.types.Operator):
         #Light stuff#
         #############
         light_file_name = "custom_lighting.rib"
-        light_file_path = os.path.join(self.directory, light_file_name)
+        light_file_path = os.path.join(self.fout_dir, light_file_name)
         light_file = open(light_file_path, 'w')
 
         for i, obj in enumerate(bpy.context.scene.objects):
@@ -642,7 +647,7 @@ class ExportChronoRender(bpy.types.Operator):
         renderobject += self.write_object(proxyObjects, is_proxy = True)
 
         #Imported meshes
-        fout_extrageo = open(os.path.join(self.directory, "extrageometry.rib"), "w")
+        fout_extrageo = open(os.path.join(self.fout_dir, "extrageometry.rib"), "w")
         for obj in bpy.data.objects:
             if obj.type == 'MESH' and obj.name != "Ambient Light Proxy":
                 if not 'index' in obj:
@@ -719,18 +724,20 @@ class ExportChronoRender(bpy.types.Operator):
 
         print("Export complete! (yes really)")
         print("Compression beginning")
-        self.compress(fin_name, fin_path, self.filename, self.directory)
-        self.compress(self.directory,fin_path)
+        self.compress(fin_name, fin_dir, self.filename, self.fout_dir)
+        print("Compression finished")
         return {'FINISHED'}
 
-    def compress(self, fin_name, fin_path, fout_name, fout_path, force_data=False):
-        data_zipped_path = os.path.join(fout_path, "data.tar.gz")
+    def compress(self, fin_name, fin_dir, fout_name, fout_dir, force_data=False):
+        data_zipped_path = os.path.join(self.directory, "data.tar.gz")
+        metadata_zipped_path = os.path.join(self.directory, fout_name.split(".")[0] + ".tar.gz")
+        import pdb; pdb.set_trace()
         if not os.path.exists(data_zipped_path) or force_data == True:
-            with tarfile.open("out.tar.gz", "w:gz") as tar:
-                tar.add(fin_path)
-        for 
-
-
+            with tarfile.open(data_zipped_path, "w:gz") as tar:
+                tar.add(fin_dir, arcname="job/data")
+        # import pdb; pdb.set_trace()
+        with tarfile.open(metadata_zipped_path, "w:gz") as tar2:
+            tar2.add(fout_dir, arcname="")
 
 def add_exportChronoRenderButton(self, context):
     self.layout.operator(
