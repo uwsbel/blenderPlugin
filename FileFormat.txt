@@ -74,9 +74,19 @@ by proxy objects.
     cylinder            radius, height
     cone                radius, height
     box                 half_xlength, half_ylength, half_zlength
+    extrageometry         filename
 -All supported primitive objects are NOT the same as their renderman counterparts.
     Supported objects have all sides closed so the top and bottom of a
     cylinder will not be open. 
+
+extrageometry is a special type that you may put in your yaml file if you wish
+to add geometry while in blender. This includes importing of meshes in any blender
+supported format. To enable this adding of geometry, add this line to the end 
+of ALL data files that you want the object in.
+    individual,id#,0,0,0,0,0,0,0,extrageometry,extrageometry.rib,
+
+    in place of id# put a unique number.
+
 
 Possible extensions to the file format:
 -density, pressure, velocity for simulations that need them could 

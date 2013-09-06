@@ -12,7 +12,7 @@ import yaml
 #currently using NO user input for ao and color bleeding quality parameters!
 
 #TODO: Why is renderman's window larger than blender's for rendering
-#some of the files
+#some of the files (the sensor size maybe?)
 
 #TODO: PERFORMANCE:
 #   clipping panes
@@ -20,6 +20,15 @@ import yaml
 #   multicore stuff (share shadowmaps, etc)
 #    renderman multiple cores (qsub vs -p:16) vs renderman one instance per core
 #   a way to remove background images from shadowpass 
+#   use DelayedReadArchive instead of ReadArchive for obj and other junk
+
+#TODO: keyframing
+
+#TODO: import obj files! Blender-to-Renderman-master
+#-rotation and translation of meshes
+
+#TODO: zip up and unzip the config and data files. Add one master config file for render options.
+
 
 #Resolution and shading rate affect time and quality of render
 
@@ -71,6 +80,7 @@ class AmbientLightProxy:
         bpy.ops.mesh.primitive_monkey_add(location=(6, 6, 6))
         bpy.context.active_object.name = "Ambient Light Proxy"
         bpy.context.active_object.active_material = self.material
+        bpy.context.active_object["index"] = "AMBIENT_PROXY"
         self.obj = bpy.context.active_object
         
 class Object:
@@ -184,6 +194,7 @@ class ProxyObject(Object):
         # print(self.ep)
         bpy.ops.mesh.primitive_monkey_add(radius=self.ep[0], location=(self.x, self.y, self.z))
         bpy.context.active_object["group"] = self.group
+        bpy.context.active_object["index"] = "PROXY"
         bpy.context.active_object.name = "Proxy " + self.group
         bpy.context.active_object.active_material = self.material
         self.obj = bpy.context.active_object
@@ -233,6 +244,7 @@ class ImportChronoRender(bpy.types.Operator):
         global objects
         global proxyObjects
         global ambient_proxy
+        global extra_geometry_index
         # filename = "/home/xeno/repos/blender-plugin/plugins/blender/blender_input_test.dat"
         # individualObjectsIndicies = [1,2,3,4, 5, 6] #LINE NUMBERS
 
@@ -245,21 +257,24 @@ class ImportChronoRender(bpy.types.Operator):
         fin = open(filepath, "r")
 
         for i, line in enumerate(fin):
-            self.process_max_dimensions(line.split(","))
-            if line.split(",")[0].lower() == "individual":
-                objects.append(Object(line.split(",")))
-                print("Object {}".format(i))
-
+            if line.split(",")[9].lower() == "extrageometry":
+                extra_geometry_index = line.split(",")[1]
             else:
-                data = line.split(",")
-                proxyExists = False
-                for obj in proxyObjects:
-                    if obj.group == data[0]:
-                        obj.indicies.append(i+1)
-                        proxyExists = True
-                if not proxyExists:
-                    print("New Proxy line num {}".format(i))
-                    proxyObjects.append(ProxyObject(data, [i+1]))
+                self.process_max_dimensions(line.split(","))
+                if line.split(",")[0].lower() == "individual":
+                    objects.append(Object(line.split(",")))
+                    print("Object {}".format(i))
+
+                else:
+                    data = line.split(",")
+                    proxyExists = False
+                    for obj in proxyObjects:
+                        if obj.group == data[0]:
+                            obj.indicies.append(i+1)
+                            proxyExists = True
+                    if not proxyExists:
+                        print("New Proxy line num {}".format(i))
+                        proxyObjects.append(ProxyObject(data, [i+1]))
 
         configInitialScene()
 
@@ -299,6 +314,27 @@ class ExportChronoRender(bpy.types.Operator):
             rtnd += str(i) + " or id == "
 
         return rtnd[:-10] #-10 t remove the trailing or id ==
+
+    def export_mesh(self, context, fout, obj):
+        for face in obj.data.polygons:
+            pgonstr = "Polygon "
+            vertices = '"P" ['
+            for v in face.vertices:
+                vert = obj.data.vertices[v].co
+                vertices += "  {} {} {}".format(vert.x + obj.location[0], vert.y + obj.location[1], vert.z + obj.location[2])
+
+            vertices += ']\n'
+            pgonstr += vertices
+
+            fout.write('AttributeBegin\n')
+            fout.write('Surface "matte"\n')
+            fout.write('Color [{} {} {}]\n'.format(obj.color[0], obj.color[1], obj.color[2]))
+            fout.write('Rotate {} 1 0 0\n'.format(math.degrees(obj.rotation_euler[0])))
+            fout.write('Rotate {} 0 1 0\n'.format(math.degrees(obj.rotation_euler[1])))
+            fout.write('Rotate {} 0 0 1\n'.format(math.degrees(obj.rotation_euler[2])))
+            # fout.write('Translate {} {} {}\n'.format(obj.location[0], obj.location[1], obj.location[2]))
+            fout.write(pgonstr)
+            fout.write('AttributeEnd\n')
 
     def write_object(self, objects, is_proxy=False):
         renderobject = []
@@ -351,6 +387,20 @@ class ExportChronoRender(bpy.types.Operator):
             if not obj.obj.hide_render:
                 renderobject.append(data)
 
+        return renderobject
+
+    def write_extra_geometry(self, context, obj):
+        global extra_geometry_index
+        renderobject = []
+        data = dict()
+        # data["color"] = "{} {} {}".format(obj.color[0], obj.color[1], obj.color[2])
+        data["geometry"] = [{"type" : "archive"}]
+        # data["shader"] = [{"type" : "matte.sl"}]
+        data["geometry"][0]["filename"] = "extrageometry.rib"
+        data["name"] = "extrageometry"
+        data["condition"] = "id == {}".format(extra_geometry_index)
+
+        renderobject.append(data)
         return renderobject
 
     def camera_to_renderman(self, context, obj):
@@ -587,6 +637,16 @@ class ExportChronoRender(bpy.types.Operator):
 
         renderobject = self.write_object(objects, is_proxy = False)
         renderobject += self.write_object(proxyObjects, is_proxy = True)
+
+        #Imported meshes
+        fout_extrageo = open(os.path.join(self.directory, "extrageometry.rib"), "w")
+        for obj in bpy.data.objects:
+            if obj.type == 'MESH' and obj.name != "Ambient Light Proxy":
+                if not 'index' in obj:
+                    self.export_mesh(context, fout_extrageo, obj)
+                    renderobject += self.write_extra_geometry(context, obj)
+
+        fout_extrageo.close()
 
         data_name = "./data/" + "_".join(fin_name.split("_")[:-1]) + "_*.dat"
 
