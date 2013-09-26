@@ -4,6 +4,7 @@ import mathutils
 import os
 import yaml
 import tarfile
+import shutil
 #TODO: shader selection inside blender?
 
 #TODO: walltime for one frame instead of for the whole big render?
@@ -28,10 +29,11 @@ import tarfile
 #TODO: import obj files! Blender-to-Renderman-master
 #-rotation and translation of meshes
 
-#TODO: zip up and unzip the config and data files. Add one master config file for render options.
-
+#TODO: try hardcoding position in and see differences. See what the axis actuall are
 
 #Resolution and shading rate affect time and quality of render
+
+#TODO: for server-side, are tarbombs a problem?
 
 bl_info = {
         "name": "Chrono::Render plugin",
@@ -174,6 +176,7 @@ class Object:
             self.color = (self.obj.active_material.diffuse_color[0], self.obj.active_material.diffuse_color[1], self.obj.active_material.diffuse_color[2])
             self.mat = self.obj.active_material
         except:
+            print("EXCEPTION! Dropping to pdb shell")
             import pdb; pdb.set_trace()
 
 class ProxyObject(Object):
@@ -206,6 +209,7 @@ class ProxyObject(Object):
             self.color = (self.obj.active_material.diffuse_color[0], self.obj.active_material.diffuse_color[1], self.obj.active_material.diffuse_color[2])
             self.mat = self.obj.active_material
         except:
+            print("EXCEPTION! Dropping to pdb shell")
             import pdb; pdb.set_trace()
 
     # def update(self):
@@ -319,12 +323,13 @@ class ExportChronoRender(bpy.types.Operator):
         return rtnd[:-10] #-10 t remove the trailing or id ==
 
     def export_mesh(self, context, fout, obj):
+        #TODO: check how normal data is converted serverside for help with obj files
         for face in obj.data.polygons:
             pgonstr = "Polygon "
             vertices = '"P" ['
             for v in face.vertices:
                 vert = obj.data.vertices[v].co
-                vertices += "  {} {} {}".format(vert.x + obj.location[0], vert.y + obj.location[1], vert.z + obj.location[2])
+                vertices += "  {} {} {}".format(vert.x, vert.y+1, vert.z)
 
             vertices += ']\n'
             pgonstr += vertices
@@ -335,7 +340,7 @@ class ExportChronoRender(bpy.types.Operator):
             fout.write('Rotate {} 1 0 0\n'.format(math.degrees(obj.rotation_euler[0])))
             fout.write('Rotate {} 0 1 0\n'.format(math.degrees(obj.rotation_euler[1])))
             fout.write('Rotate {} 0 0 1\n'.format(math.degrees(obj.rotation_euler[2])))
-            # fout.write('Translate {} {} {}\n'.format(obj.location[0], obj.location[1], obj.location[2]))
+            fout.write('Translate {} {} {}\n'.format(obj.location[0], obj.location[1], obj.location[2]))
             fout.write(pgonstr)
             fout.write('AttributeEnd\n')
 
@@ -722,20 +727,40 @@ class ExportChronoRender(bpy.types.Operator):
 
         yaml.safe_dump(data, fout)
 
+        self.move_ribs(self.fout_dir)
+
         print("Export complete! (yes really)")
         print("Compression beginning")
         self.compress(fin_name, fin_dir, self.filename, self.fout_dir)
         print("Compression finished")
         return {'FINISHED'}
 
+    def move_ribs(self, fout_dir):
+        """Moves all rib files to the ribarchive directory"""
+        ribarchives = os.path.join(fout_dir, "ribarchives")
+        if not os.path.isdir(ribarchives):
+            os.mkdir(ribarchives)
+        init_dir = os.getcwd()
+
+        os.chdir(fout_dir)
+        # import pdb; pdb.set_trace()
+        for f in os.listdir("."):
+            if f.endswith(".rib"):
+                dest = os.path.join(ribarchives, os.path.basename(f))
+                shutil.copy(f, dest)
+
+        os.chdir(init_dir)
+
+            
     def compress(self, fin_name, fin_dir, fout_name, fout_dir, force_data=False):
+        #TODO: allow user to select force_data
+        #requires a SEPARATE data directory to work
+        #TODO: put all extra .rib file sin the ribarchives dir so they can be used
         data_zipped_path = os.path.join(self.directory, "data.tar.gz")
         metadata_zipped_path = os.path.join(self.directory, fout_name.split(".")[0] + ".tar.gz")
-        import pdb; pdb.set_trace()
         if not os.path.exists(data_zipped_path) or force_data == True:
             with tarfile.open(data_zipped_path, "w:gz") as tar:
                 tar.add(fin_dir, arcname="job/data")
-        # import pdb; pdb.set_trace()
         with tarfile.open(metadata_zipped_path, "w:gz") as tar2:
             tar2.add(fout_dir, arcname="")
 
@@ -761,3 +786,4 @@ def unregister():
 
 if __name__ == "__main__":
     register()
+
