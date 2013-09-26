@@ -329,7 +329,7 @@ class ExportChronoRender(bpy.types.Operator):
             vertices = '"P" ['
             for v in face.vertices:
                 vert = obj.data.vertices[v].co
-                vertices += "  {} {} {}".format(vert.x, vert.y+1, vert.z)
+                vertices += "  {} {} {}".format(vert.x, vert.y, vert.z)
 
             vertices += ']\n'
             pgonstr += vertices
@@ -340,7 +340,7 @@ class ExportChronoRender(bpy.types.Operator):
             fout.write('Rotate {} 1 0 0\n'.format(math.degrees(obj.rotation_euler[0])))
             fout.write('Rotate {} 0 1 0\n'.format(math.degrees(obj.rotation_euler[1])))
             fout.write('Rotate {} 0 0 1\n'.format(math.degrees(obj.rotation_euler[2])))
-            fout.write('Translate {} {} {}\n'.format(obj.location[0], obj.location[1], obj.location[2]))
+            fout.write('Translate {} {} {}\n'.format(obj.location[0], obj.location[2], -obj.location[1]))
             fout.write(pgonstr)
             fout.write('AttributeEnd\n')
 
@@ -751,7 +751,6 @@ class ExportChronoRender(bpy.types.Operator):
 
         os.chdir(init_dir)
 
-            
     def compress(self, fin_name, fin_dir, fout_name, fout_dir, force_data=False):
         #TODO: allow user to select force_data
         #requires a SEPARATE data directory to work
