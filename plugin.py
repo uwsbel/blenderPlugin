@@ -35,6 +35,8 @@ import shutil
 
 #TODO: for server-side, are tarbombs a problem?
 
+#TODO: rotations for obj files
+
 bl_info = {
         "name": "Chrono::Render plugin",
         "description": "Allows for easy graphical manipulation of simulated data before rendering with a powerful renderman renderer",
@@ -337,9 +339,10 @@ class ExportChronoRender(bpy.types.Operator):
             fout.write('AttributeBegin\n')
             fout.write('Surface "matte"\n')
             fout.write('Color [{} {} {}]\n'.format(obj.color[0], obj.color[1], obj.color[2]))
-            fout.write('Rotate {} 1 0 0\n'.format(math.degrees(obj.rotation_euler[0])))
-            fout.write('Rotate {} 0 1 0\n'.format(math.degrees(obj.rotation_euler[1])))
+            #TODO: get rotations to work with any blender rotation scheme
             fout.write('Rotate {} 0 0 1\n'.format(math.degrees(obj.rotation_euler[2])))
+            fout.write('Rotate {} 0 1 0\n'.format(math.degrees(obj.rotation_euler[1])))
+            fout.write('Rotate {} 1 0 0\n'.format(math.degrees(obj.rotation_euler[0])))
             fout.write('Translate {} {} {}\n'.format(obj.location[0], obj.location[2], -obj.location[1]))
             fout.write(pgonstr)
             fout.write('AttributeEnd\n')
