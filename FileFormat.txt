@@ -87,6 +87,13 @@ of ALL data files that you want the object in.
 
     in place of id# put a unique number.
 
+    extrageometry types may be animated by changing the x,y,z values in the
+    data files. Location 0,0,0 in the data file is wherever you place your
+    extra geometry in blender and everything else is relative to THAT position,
+    NOT the actual origin blender shows.
+
+    Also, currently there is no way to use multiple extrageometry archives.
+
 
 Possible extensions to the file format:
 -density, pressure, velocity for simulations that need them could 

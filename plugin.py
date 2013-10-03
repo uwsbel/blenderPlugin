@@ -51,6 +51,10 @@ bl_info = {
 
 DEFAULT_COLOR = (0.4, 0.4, 0.6)
 
+MESH_IMPORT_FUNCTIONS = {"obj": bpy.ops.import_scene.obj,
+                        "stl": bpy.ops.import_mesh.stl,
+                        "ply": bpy.ops.import_mesh.ply}
+
 fin = ""
 objects = ""
 proxyObjects = ""
@@ -251,13 +255,14 @@ class ImportChronoRender(bpy.types.Operator):
         global objects
         global proxyObjects
         global ambient_proxy
-        global extra_geometry_index
+        global extra_geometry_indicies
         global fin_dir
         # filename = "/home/xeno/repos/blender-plugin/plugins/blender/blender_input_test.dat"
         # individualObjectsIndicies = [1,2,3,4, 5, 6] #LINE NUMBERS
 
         objects = []
         proxyObjects = []
+        extra_geometry_indicies = []
 
         fin_name = self.filename
         filepath = os.path.join(self.directory, self.filename)
@@ -267,7 +272,12 @@ class ImportChronoRender(bpy.types.Operator):
 
         for i, line in enumerate(fin):
             if line.split(",")[9].lower() == "extrageometry":
-                extra_geometry_index = line.split(",")[1]
+                extra_geometry_indicies.append(line.split(",")[1])
+            if line.split(",")[9].lower() == "obj":
+                mesh_filename = os.path.join(self.directory, "meshes", line.split(",")[10].strip("\n"))
+                MESH_IMPORT_FUNCTIONS["obj"](filepath=mesh_filename)
+                extra_geometry_indicies.append(line.split(",")[1])
+
             else:
                 self.process_max_dimensions(line.split(","))
                 if line.split(",")[0].lower() == "individual":
@@ -401,7 +411,7 @@ class ExportChronoRender(bpy.types.Operator):
         return renderobject
 
     def write_extra_geometry(self, context, obj):
-        global extra_geometry_index
+        global extra_geometry_indicies
         renderobject = []
         data = dict()
         # data["color"] = "{} {} {}".format(obj.color[0], obj.color[1], obj.color[2])
@@ -409,7 +419,11 @@ class ExportChronoRender(bpy.types.Operator):
         # data["shader"] = [{"type" : "matte.sl"}]
         data["geometry"][0]["filename"] = "extrageometry.rib"
         data["name"] = "extrageometry"
-        data["condition"] = "id == {}".format(extra_geometry_index)
+        id_str = ""
+        for i in extra_geometry_indicies:
+            id_str += "id == {} or ".format(i)
+        id_str = id_str[:-4]
+        data["condition"] = id_str
 
         renderobject.append(data)
         return renderobject
