@@ -75,6 +75,7 @@ by proxy objects.
     cone                radius, height
     box                 half_xlength, half_ylength, half_zlength
     extrageometry         filename
+    obj                 filename
 -All supported primitive objects are NOT the same as their renderman counterparts.
     Supported objects have all sides closed so the top and bottom of a
     cylinder will not be open. 
@@ -93,7 +94,6 @@ of ALL data files that you want the object in.
     NOT the actual origin blender shows.
 
     Also, currently there is no way to use multiple extrageometry archives.
-
 
 Possible extensions to the file format:
 -density, pressure, velocity for simulations that need them could 
