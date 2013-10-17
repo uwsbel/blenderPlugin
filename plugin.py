@@ -42,6 +42,8 @@ import shutil
 # figure out where they go using the actual dat files.
 
 #TODO: Figure out how to deal with multiple part imports. Merging into one makes separate materials not work. Some sort of naming system to overrule the ones in the file. Do we need a new type of object to deal with the multiple imported mess? Ask about how povray one was done.
+
+#TODO: check axis changing for importing in blender. base it off of the renderman render. try with one shicp to start.
 bl_info = {
         "name": "Chrono::Render plugin",
         "description": "Allows for easy graphical manipulation of simulated data before rendering with a powerful renderman renderer",
@@ -108,6 +110,7 @@ class Object:
         self.z = float(data[4])
 
         self.quat = mathutils.Quaternion((float(data[5]), float(data[6]), float(data[7]), float(data[8])))
+        # self.euler_zyx = self.quat.to_euler('ZYX')
         self.euler = tuple(a for a in self.quat.to_euler())
 
         self.obj_type = data[9].lower()
@@ -187,12 +190,17 @@ class Object:
             # bpy.ops.object.join()
             for o in bpy.context.selected_objects:
                 o.location = [self.x, self.y, self.z]
+                # Now rotate and move to match what renderman render looks like
                 o.rotation_euler = mathutils.Euler(self.euler)
+                # o.rotation_euler = self.euler_zyx
+                # o.rotation_euler.rotate(mathutils.Euler((math.pi, 0, 0)))
+                # o.rotation_quaternion = self.quat.rotate(mathutils.Euler((180, 0, 0)))
                 bpy.context.scene.objects.active = o 
         else:
             print("Object type {} is not currently supported as a primitive in the blender plugin")
  
-        import pdb; pdb.set_trace()
+        bpy.context.active_object.rotation_mode = 'ZYX'
+        # import pdb; pdb.set_trace()
         bpy.context.active_object["index"] = self.index
         # import pdb; pdb.set_trace()
         bpy.context.active_object.name = "Obj # {}".format(self.index)
@@ -385,7 +393,7 @@ class ExportChronoRender(bpy.types.Operator):
 
     def export_mesh(self, context, fout, obj):
         #TODO: don't use just one file for the whole animation. One per frame. (per obj also?)
-        import pdb; pdb.set_trace()
+        # import pdb; pdb.set_trace()
         for face in obj.obj.data.polygons:
             pgonstr = "Polygon "
             vertices = '"P" ['
@@ -409,7 +417,7 @@ class ExportChronoRender(bpy.types.Operator):
 
     def write_object(self, objects, is_proxy=False):
         renderobject = []
-        import pdb; pdb.set_trace()
+        # import pdb; pdb.set_trace()
         for obj in objects:
             obj.update()
             name = obj.group
@@ -459,7 +467,7 @@ class ExportChronoRender(bpy.types.Operator):
             elif obj.obj_type.lower() in MESH_IMPORT_FUNCTIONS:
                 extra_rib_filename = "extra_geo_{}".format(obj.index) + ".rib"
                 data["geometry"][0]["filename"] = extra_rib_filename
-                import pdb; pdb.set_trace()
+                # import pdb; pdb.set_trace()
                 renderman_dir = os.path.join(self.directory, "RENDERMAN")
                 if not os.path.exists(renderman_dir):
                     os.makedirs(renderman_dir)
