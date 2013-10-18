@@ -44,6 +44,10 @@ import shutil
 #TODO: Figure out how to deal with multiple part imports. Merging into one makes separate materials not work. Some sort of naming system to overrule the ones in the file. Do we need a new type of object to deal with the multiple imported mess? Ask about how povray one was done.
 
 #TODO: check axis changing for importing in blender. base it off of the renderman render. try with one shicp to start.
+
+#TODO: the fov for simple shots is way off. Why?
+
+#TODO: check if cone (and other objs) should have location in center or not.
 bl_info = {
         "name": "Chrono::Render plugin",
         "description": "Allows for easy graphical manipulation of simulated data before rendering with a powerful renderman renderer",
@@ -160,8 +164,8 @@ class Object:
             bpy.context.object.rotation_euler = mathutils.Euler(self.euler)
         # Cylinder
         elif self.obj_type == "cylinder":
-            # ep[0] = radius of top, ep[1] = depth
-            bpy.ops.mesh.primitive_cylinder_add(radius=self.ep[0], depth=self.ep[1], location=(self.x, self.y, self.z), rotation=self.euler)
+            # ep[0] = radius of top, 2*ep[1] = depth
+            bpy.ops.mesh.primitive_cylinder_add(radius=self.ep[0], depth=2*self.ep[1], location=(self.x, self.y, self.z), rotation=self.euler)
         # Sphere
         elif self.obj_type == "sphere":
             # ep[0] = radius of the sphere
@@ -177,8 +181,8 @@ class Object:
 
         #Cone
         elif self.obj_type == "cone":
-            # self.ep[0] = radius of cone bottom, self.ep[1] = height of cone
-            bpy.ops.mesh.primitive_cone_add(radius1=self.ep[0], depth=self.ep[1], location=(self.x, self.y, self.z), rotation=self.euler)
+            # self.ep[0] = radius of cone bottom, self.ep[1] = half_height of cone
+            bpy.ops.mesh.primitive_cone_add(radius1=self.ep[0], depth=2*self.ep[1], location=(self.x, self.y, self.z), rotation=self.euler)
         #Torus
         elif self.obj_type == "torus":
             bpy.ops.mesh.primitive_torus_add(rotation=self.euler, location=(self.x, self.y, self.z), major_radius=self.ep[0], minor_radius=self.ep[1])

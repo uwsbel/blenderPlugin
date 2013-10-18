@@ -71,8 +71,8 @@ by proxy objects.
     sphere              radius
     cube                half_side_length
     ellipsoid           a,b,c  (semi-principle axis)
-    cylinder            radius, height
-    cone                radius, height
+    cylinder            radius, half_height TODO: half height cylinder and cone renderman
+    cone                radius, half_height
     box                 half_xlength, half_ylength, half_zlength
     extrageometry         filename
     obj                 filename
