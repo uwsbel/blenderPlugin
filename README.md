@@ -2,24 +2,10 @@
 Requirements: blender 2.6x, python3, and pyyaml should all be installed on 
     the machine from which you will be running blender.
 
-The Short Way (requires access to euler):
-1. Copy the stable version of the blender plugin from euler at
-    /home/groups/sbel/rendering/chrono-render/plugins/blender
-    put this file in the the proper place on your machine.
+The Easy Way (for those with access to euler):
+    
 
-    On linux blender addons go in:
-    /home/$user/.config/blender/$version/scripts/addons
-    Windows XP:
-    C:\Documents and Settings\%username%\Application Data\Blender Foundation\Blender\2.6x\scripts\addons
-    Windows7:
-    C:\Users\%username%\AppData\Roaming\Blender Foundation\Blender\2.6x\scripts\addons
 
-2. Enable the blender plugin by opening blender and going to File -> User
-        Preferences -> Addons and clicking the checkbox next to Import-Export:
-        Chrono::Render plugin. Hit Save User Settings at the bottom and you
-        are done!
-
-The Long Way:
 Note: this is written assuming you will run blender on a local machine
 and then render on euler.
 
@@ -175,21 +161,8 @@ Other things to be aware of:
         on the little eye next to the object you wish to turn invisible (upper
         right by default). THe little camera will toggle it invisible for 
         rendering. 
-    In blender, the sun will light the same no matter where you place it, but
-        in order to get correct shadows efficently with renderman, there are a
-        few restrictions. If you ignore these restrictions your shadows WILL be 
-        messed up. The sun should just outside of the scene, and the ray coming
-        out from it should pass roughly through the origin.
-    Enabling Ambient Occlusion is done by checking the box under the world tab.
-        While there are sliders for settings, these will NOT affect the renderman
-        render at this time because sane renderman defaults are beyond blender's
-        capability. You DO need to check that box though!
-    Enabling Color Bleeding is done by checking the Indirect Lighting box under
-        the world tab. The bounces slider may be used to get more bounces but
-        one is reccomended. More bounces = more time. In order to
-        see something close to the render in blender, you must go under Gather
-        and change from raytrace to approximate. This enables colorbleeding in
-        blender but is not required for the renderman render.
+
+
 
 **File Format**
 See FileFormat.txt
