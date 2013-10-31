@@ -47,7 +47,11 @@ import shutil
 
 #TODO: the fov for simple shots is way off. Why?
 
-#TODO: check if cone (and other objs) should have location in center or not.
+#TODO: get the cone to use center point instead of bottom center in renderman.
+
+#TODO: add the folders if they don't exist for crender_auto.py
+
+#TODO: get rendering working again with a basic sim!
 bl_info = {
         "name": "Chrono::Render plugin",
         "description": "Allows for easy graphical manipulation of simulated data before rendering with a powerful renderman renderer",
