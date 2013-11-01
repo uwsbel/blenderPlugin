@@ -26,11 +26,6 @@ import shutil
 
 #TODO: keyframing
 
-#TODO: import obj files! Blender-to-Renderman-master
-#-rotation and translation of meshes
-
-#TODO: try hardcoding position in and see differences. See what the axis actuall are
-
 #Resolution and shading rate affect time and quality of render
 
 #TODO: for server-side, are tarbombs a problem?
@@ -47,11 +42,8 @@ import shutil
 
 #TODO: the fov for simple shots is way off. Why?
 
-#TODO: get the cone to use center point instead of bottom center in renderman.
+#TODO: camera keyframing, light keyframing
 
-#TODO: add the folders if they don't exist for crender_auto.py
-
-#TODO: get rendering working again with a basic sim!
 bl_info = {
         "name": "Chrono::Render plugin",
         "description": "Allows for easy graphical manipulation of simulated data before rendering with a powerful renderman renderer",
@@ -684,12 +676,21 @@ class ExportChronoRender(bpy.types.Operator):
         ##############
         #Camera stuff#
         ##############
-        cam_file_name = "custom_camera.rib"
-        cam_file_path = os.path.join(self.fout_dir, cam_file_name)
-        cam_file = open(cam_file_path, 'w')
-        cam_file.write(self.camera_to_renderman(context, bpy.data.objects['Camera']))
+        #TODO: for camera keyframing a NEW custom_camera each frame
+        current_frame = bpy.context.scene.frame_current
+        fmax = bpy.data.scenes["Scene"].frame_end
+        fmin = 0
+        for frame in range(fmin, fmax):
+            bpy.context.scene.frame_current = frame
 
-        cam_file.close()
+            cam_file_name = "custom_camera_{}.rib".format(frame)
+            cam_file_path = os.path.join(self.fout_dir, cam_file_name)
+            cam_file = open(cam_file_path, 'w')
+            cam_file.write(self.camera_to_renderman(context, bpy.data.objects['Camera']))
+
+            cam_file.close()
+
+        bpy.context.scene.frame_current = current_frame
         #############
         #Light stuff#
         #############
