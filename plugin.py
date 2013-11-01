@@ -684,12 +684,19 @@ class ExportChronoRender(bpy.types.Operator):
         ##############
         #Camera stuff#
         ##############
-        cam_file_name = "custom_camera.rib"
-        cam_file_path = os.path.join(self.fout_dir, cam_file_name)
-        cam_file = open(cam_file_path, 'w')
-        cam_file.write(self.camera_to_renderman(context, bpy.data.objects['Camera']))
+        current_frame = bpy.context.scene.frame_current
+        fmax = bpy.data.scenes["Scene"].frame_end
+        fmin = 0
+        for frame in range(fmin, fmax):
+            bpy.context.scene.frame_current = frame
+            cam_file_name = "custom_camera_{}.rib".format(frame)
+            cam_file_path = os.path.join(self.fout_dir, cam_file_name)
+            cam_file = open(cam_file_path, 'w')
+            cam_file.write(self.camera_to_renderman(context, bpy.data.objects['Camera']))
 
-        cam_file.close()
+            cam_file.close()
+
+        bpy.context.scene.frame_current = current_frame
         #############
         #Light stuff#
         #############
