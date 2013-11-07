@@ -271,9 +271,11 @@ class ProxyObject(Object):
     #         self.color = (self.obj.active_material.diffuse_color[0], self.obj.active_material.diffuse_color[1], self.obj.active_material.diffuse_color[2])
     #         self.mat = self.obj.active_material
 
-def configInitialScene():
+def configInitialScene(fin_frame):
     # bpy.ops.object.delete()
-    pass
+    bpy.data.scenes["Scene"].frame_end = fin_frame
+    bpy.data.scenes["Scene"].frame_start = 0
+    bpy.data.scenes["Scene"].frame_current = bpy.data.scenes["Scene"].frame_start
 
 class ImportChronoRender(bpy.types.Operator):
     """Import ChronoRender"""
@@ -332,6 +334,13 @@ class ImportChronoRender(bpy.types.Operator):
         extra_geometry_indicies = []
 
         fin_name = self.filename
+        fin_frame = 250
+        try:
+            fin_frame = self.filename.replace(".dat", "")
+            fin_frame = int(fin_frame.replace("data_", ""))
+        except:
+            print("Failed to automatically get the framerange from the file")
+        
         filepath = os.path.join(self.directory, self.filename)
         fin_dir = self.directory
 
@@ -359,7 +368,7 @@ class ImportChronoRender(bpy.types.Operator):
                     print("New Proxy line num {}".format(i))
                     proxyObjects.append(ProxyObject(data, [i+1], self.directory))
 
-        configInitialScene()
+        configInitialScene(fin_frame)
 
         for obj in objects:
             obj.addToBlender()
@@ -695,7 +704,9 @@ class ExportChronoRender(bpy.types.Operator):
             cam_file.write(self.camera_to_renderman(context, bpy.data.objects['Camera']))
 
             cam_file.close()
+            #TODO: set frame markers in blender to be start and end of sim. curr to be curr frame
 
+        cam_file_name = "custom_camera.rib"
         bpy.context.scene.frame_current = current_frame
         #############
         #Light stuff#
