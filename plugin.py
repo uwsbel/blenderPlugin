@@ -52,6 +52,12 @@ import shutil
 #TODO: add the folders if they don't exist for crender_auto.py
 
 #TODO: get rendering working again with a basic sim!
+
+#TODO: get intensities right!
+
+#urls:
+#http://euler.wacc.wisc.edu/~felipegb94/input/data.tar.gz
+#http://euler.wacc.wisc.edu/~felipegb94/input/out.tar.gz
 bl_info = {
         "name": "Chrono::Render plugin",
         "description": "Allows for easy graphical manipulation of simulated data before rendering with a powerful renderman renderer",
