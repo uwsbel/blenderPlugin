@@ -357,7 +357,7 @@ class ImportChronoRender(bpy.types.Operator):
                         proxyExists = True
                 if not proxyExists:
                     print("New Proxy line num {}".format(i))
-                    proxyObjects.append(ProxyObject(data, [i+1], self.directory))
+                    proxyObjects.append(ProxyObject(data, self.directory, [i+1]))
 
         configInitialScene()
 
