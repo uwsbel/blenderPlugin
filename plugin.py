@@ -55,6 +55,8 @@ import shutil
 
 #TODO: get intensities right!
 
+#TODO: shadows for moving camera
+
 #urls:
 #http://euler.wacc.wisc.edu/~felipegb94/input/data.tar.gz
 #http://euler.wacc.wisc.edu/~felipegb94/input/out.tar.gz

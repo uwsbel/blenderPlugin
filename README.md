@@ -159,7 +159,7 @@ Other things to be aware of:
     Do NOT delete objects you have imported! The export will fail if you do. If
         you want to see around them, you can toggle them invisible by cliking
         on the little eye next to the object you wish to turn invisible (upper
-        right by default). THe little camera will toggle it invisible for 
+        right by default). The little camera will toggle it invisible for 
         rendering. 
 
 
