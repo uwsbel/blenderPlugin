@@ -1,11 +1,14 @@
 **Installing the Plugin and Chrono::Render**
+
+*For a more comprehinsive understanding of the plugin, read the 
+blender-plugin-tutorial.odt file. It tells how to install the plugin, and goes 
+through a in-depth tutorial of all of the features available*
+
 Requirements: blender 2.6x, python3, and pyyaml should all be installed on 
     the machine from which you will be running blender.
 
 The Easy Way (for those with access to euler):
     
-
-
 Note: this is written assuming you will run blender on a local machine
 and then render on euler.
 
@@ -58,7 +61,11 @@ In addition to colors, you can select the camera's position, rotation, and focal
     to get a rough idea of what you will see when you render with renderman.
     
 When done, click file->export->Exports chron render file and select where to
-    export it to. 
+    export it to and name the file out.yaml
+
+*TODO: Out of date information on how to render. Process undergoing changes*
+    -the files needed still exist but are now packaged into two archives instead
+    of as individual files like the rest of the README claims.
 
 Now you have 2 new files, the output file that you specified, and a file in
     the same directory called custom_camera.rib. 
@@ -127,7 +134,6 @@ the same as for rendering locally. Compare:
         When using aqsis as the renderer, it will automatically submit a seperate
         job for each node. Do NOT bother giving aqsis renders multiple nodes or
         ppn as it is unable to use them.
-
         
 **Lighting**
 The most basic way to light a scene is to use the "Ambient Light Proxy" object.
@@ -162,13 +168,16 @@ Other things to be aware of:
         right by default). The little camera will toggle it invisible for 
         rendering. 
 
-
-
 **File Format**
 See FileFormat.txt
 
 **What you can do**
 -Apply colors to your objects and have those colors show when you render.
+-Position the camera and lighting
+-Move the camera using keyframing
+-A variety of lighting effects, including shadows, ambient occlusion, and 
+    color bleeding
+-Selectively choose which objects to render
 
 **What this plugin does NOT do (currently)**
 -allow you to move, rotate, or size the objects. You can do this in blender but if
