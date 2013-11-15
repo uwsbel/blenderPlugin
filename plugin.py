@@ -24,34 +24,11 @@ import shutil
 #   a way to remove background images from shadowpass 
 #   use DelayedReadArchive instead of ReadArchive for obj and other junk
 
-#TODO: keyframing
-
-#TODO: import obj files! Blender-to-Renderman-master
-#-rotation and translation of meshes
-
-#TODO: try hardcoding position in and see differences. See what the axis actuall are
-
 #Resolution and shading rate affect time and quality of render
 
 #TODO: for server-side, are tarbombs a problem?
 
-#TODO: rotations for obj files
-#TODO: let obj files move according to the data files
-#TODO: multiple frames end up with multiple objects!!!! (one file for all extrageometry will NOT work. Fix it!)
-# reason: can't selectivly move one obj but not other. Want to try to get untied from blender doing all the work, let chronorender
-# figure out where they go using the actual dat files.
-
-#TODO: Figure out how to deal with multiple part imports. Merging into one makes separate materials not work. Some sort of naming system to overrule the ones in the file. Do we need a new type of object to deal with the multiple imported mess? Ask about how povray one was done.
-
-#TODO: check axis changing for importing in blender. base it off of the renderman render. try with one shicp to start.
-
 #TODO: the fov for simple shots is way off. Why?
-
-#TODO: get the cone to use center point instead of bottom center in renderman.
-
-#TODO: add the folders if they don't exist for crender_auto.py
-
-#TODO: get rendering working again with a basic sim!
 
 #TODO: get intensities right!
 
@@ -144,7 +121,6 @@ class Object:
                     self.ep.append(float(data[x]))
                 except ValueError:
                     self.ep.append(data[x].strip("\n"))
-
 
         self.color = DEFAULT_COLOR
         self.currdir = currdir
@@ -705,7 +681,6 @@ class ExportChronoRender(bpy.types.Operator):
             cam_file.write(self.camera_to_renderman(context, bpy.data.objects['Camera']))
 
             cam_file.close()
-            #TODO: set frame markers in blender to be start and end of sim. curr to be curr frame
 
         cam_file_name = "custom_camera.rib"
         bpy.context.scene.frame_current = current_frame
@@ -751,7 +726,6 @@ class ExportChronoRender(bpy.types.Operator):
                 if light_string != None:
                     light_file.write(light_string)
 
-
         ambient_proxy.update()
         light_string = 'LightSource "ambientlight" {} "intensity" {} "lightcolor" [{} {} {}]\n'.format(i, ambient_proxy.obj.active_material.ambient, bpy.data.worlds["World"].ambient_color[0], bpy.data.worlds["World"].ambient_color[1], bpy.data.worlds["World"].ambient_color[2])
         light_file.write(light_string)
@@ -762,7 +736,6 @@ class ExportChronoRender(bpy.types.Operator):
             self.write_ambient_occlusion(context, renderpasses, "colorbleedinglight.sl")
         elif bpy.context.scene.world.light_settings.use_ambient_occlusion:
             self.write_ambient_occlusion(context, renderpasses, "occlusionlight.sl")
-
 
         ##########
         #The Rest#
@@ -873,7 +846,7 @@ class ExportChronoRender(bpy.types.Operator):
     def compress(self, fin_name, fin_dir, fout_name, fout_dir, force_data=False):
         #TODO: allow user to select force_data
         #requires a SEPARATE data directory to work
-        #TODO: put all extra .rib file sin the ribarchives dir so they can be used
+        #TODO: put all extra .rib files in the ribarchives dir so they can be used
         data_zipped_path = os.path.join(self.directory, "data.tar.gz")
         metadata_zipped_path = os.path.join(self.directory, fout_name.split(".")[0] + ".tar.gz")
         if not os.path.exists(data_zipped_path) or force_data == True:
