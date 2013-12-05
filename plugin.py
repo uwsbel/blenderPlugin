@@ -274,7 +274,7 @@ class ImportChronoRender(bpy.types.Operator):
         max_length = 0
         if data[9] in MESH_IMPORT_FUNCTIONS:
             pass
-            #TODO: this could screw up some shadows. Fix.
+            #TODO: this could screw up some shadows. Fix. (because now sun shadows out of box)
         else:
             max_length = max(float(data[x]) for x in range(10,len(data)) if data[x] is not '\n') 
         for coord in (data[2:5]):
@@ -314,10 +314,11 @@ class ImportChronoRender(bpy.types.Operator):
         extra_geometry_indicies = []
 
         fin_name = self.filename
-        fin_frame = 250
+        fin_frame = 10
         try:
             fin_frame = self.filename.replace(".dat", "")
-            fin_frame = int(fin_frame.replace("data_", ""))
+            fin_frame = fin_frame.replace("data_", "")
+            fin_frame = int(fin_frame)
         except:
             print("Failed to automatically get the framerange from the file")
         
