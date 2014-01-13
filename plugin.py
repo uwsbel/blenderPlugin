@@ -222,7 +222,7 @@ class Object:
             import pdb; pdb.set_trace()
 
 class ProxyObject(Object):
-    def __init__(self, data, currdir, indicies):
+    def __init__(self, data, currdir, indicies, line_data):
         """ data is a line of the input file, indicies is a list of lines 
         from the file that this obj represents whichAttribute is a num which 
         specifies the column of data on the line that decides proxyObjs and 
@@ -232,6 +232,7 @@ class ProxyObject(Object):
 
         Object.__init__(self, data, currdir)
         self.indicies = indicies
+        self.line_data = line_data
         # print(self.group)
         self.color = DEFAULT_COLOR
         self.material.name = "Group {}'s material".format(self.group)
@@ -355,10 +356,11 @@ class ImportChronoRender(bpy.types.Operator):
                 for obj in proxyObjects:
                     if obj.group == data[0]:
                         obj.indicies.append(index)
+                        obj.line_data[index] = data
                         proxyExists = True
                 if not proxyExists:
                     print("New Proxy obj num {}".format(index))
-                    proxyObjects.append(ProxyObject(data, self.directory, [index]))
+                    proxyObjects.append(ProxyObject(data, self.directory, [index], {index: data}))
 
         configInitialScene(fin_frame)
 
@@ -427,7 +429,54 @@ class ExportChronoRender(bpy.types.Operator):
             fout.write(pgonstr)
             # fout.write('AttributeEnd\n')
 
-    def write_object(self, objects, is_proxy=False):
+    def write_object(self, obj, data, color, extra_params, index):
+        data["color"] = color
+        if obj.obj_type in MESH_IMPORT_FUNCTIONS:
+            data["geometry"] = [{"type" : "archive"}]
+        else:
+            data["geometry"] = [{"type" : obj.obj_type}]
+        data["shader"] = [{"name" : "matte.sl"}] #TODO: not hardcoded
+        
+        if obj.obj_type.lower() == "sphere":
+            data["geometry"][0]["radius"] = extra_params[0]
+        elif obj.obj_type.lower() == "cube":
+            data["geometry"][0]["side"] = extra_params[0]
+        elif obj.obj_type.lower() == "cone":
+            data["geometry"][0]["radius"] = extra_params[0]
+            data["geometry"][0]["height"] = extra_params[1]
+        elif obj.obj_type.lower() == "cylinder":
+            data["geometry"][0]["radius"] = extra_params[0]
+            data["geometry"][0]["height"] = extra_params[1]
+        elif obj.obj_type.lower() == "ellipsoid":
+            data["geometry"][0]["a"] = extra_params[0]
+            data["geometry"][0]["b"] = extra_params[1]
+            data["geometry"][0]["c"] = extra_params[2]
+        elif obj.obj_type.lower() == "torus":
+            data["geometry"][0]["rmajor"] = extra_params[0]
+            data["geometry"][0]["rminor"] = extra_params[1]
+        elif obj.obj_type.lower() == "box":
+            data["geometry"][0]["xlength"] = extra_params[0]
+            data["geometry"][0]["ylength"] = extra_params[1]
+            data["geometry"][0]["zlength"] = extra_params[2]
+        elif obj.obj_type.lower() in MESH_IMPORT_FUNCTIONS:
+            extra_rib_filename = "extra_geo_{}".format(index) + ".rib"
+            data["geometry"][0]["filename"] = extra_rib_filename
+            renderman_dir = os.path.join(self.directory, "RENDERMAN")
+            if not os.path.exists(renderman_dir):
+                os.makedirs(renderman_dir)
+            ribarchives_dir = os.path.join(renderman_dir, "ribarchives")
+            if not os.path.exists(ribarchives_dir):
+                os.makedirs(ribarchives_dir)
+            fout_fullpath = os.path.join(ribarchives_dir,  extra_rib_filename)
+            fout = open(fout_fullpath, "w")
+            self.export_mesh(self.context, fout, obj)
+            fout.close()
+        else:
+            print("Geometry type {} not supported by blender export at this time".format(obj.obj_type))
+
+        return data
+
+    def write_objects(self, objects, is_proxy=False):
         renderobject = []
         for obj in objects:
             obj.update()
@@ -440,60 +489,32 @@ class ExportChronoRender(bpy.types.Operator):
             data["name"] = str(name)
 
             if is_proxy:
-                data["condition"] = self.construct_condition(obj.indicies)
+                # data["condition"] = self.construct_condition(obj.indicies)
+                for index in obj.indicies:
+                    sub_data = data.copy()
+                    sub_data["condition"] = "id == {}".format(index)
+                    extra_params = []
+                    for x in range(10,len(obj.line_data[index])):
+                        if obj.line_data[index][x] is not '\n':
+                            try:
+                                extra_params.append(float(obj.line_data[index][x]))
+                            except ValueError:
+                                extra_params.append(obj.line_data[index][x].strip("\n"))
+
+                    sub_data = self.write_object(obj, sub_data, color, extra_params, index)
+
+                    if not obj.obj.hide_render:
+                        renderobject.append(sub_data)
 
             else:
                 data["condition"] = "id == {}".format(obj.index)
+                data = self.write_object(obj, data, color, obj.ep, obj.index)
                 # maxIndex = obj.index
                 # minIndex = obj.index
                 # data["condition"] = "id >= {} and id <= {}".format(minIndex, maxIndex)
 
-            data["color"] = color
-            if obj.obj_type in MESH_IMPORT_FUNCTIONS:
-                data["geometry"] = [{"type" : "archive"}]
-            else:
-                data["geometry"] = [{"type" : obj.obj_type}]
-            data["shader"] = [{"name" : "matte.sl"}] #TODO: not hardcoded
-            
-            if obj.obj_type.lower() == "sphere":
-                data["geometry"][0]["radius"] = obj.ep[0]
-            elif obj.obj_type.lower() == "cube":
-                data["geometry"][0]["side"] = obj.ep[0]
-            elif obj.obj_type.lower() == "cone":
-                data["geometry"][0]["radius"] = obj.ep[0]
-                data["geometry"][0]["height"] = obj.ep[1]
-            elif obj.obj_type.lower() == "cylinder":
-                data["geometry"][0]["radius"] = obj.ep[0]
-                data["geometry"][0]["height"] = obj.ep[1]
-            elif obj.obj_type.lower() == "ellipsoid":
-                data["geometry"][0]["a"] = obj.ep[0]
-                data["geometry"][0]["b"] = obj.ep[1]
-                data["geometry"][0]["c"] = obj.ep[2]
-            elif obj.obj_type.lower() == "torus":
-                data["geometry"][0]["rmajor"] = obj.ep[0]
-                data["geometry"][0]["rminor"] = obj.ep[1]
-            elif obj.obj_type.lower() == "box":
-                data["geometry"][0]["xlength"] = obj.ep[0]
-                data["geometry"][0]["ylength"] = obj.ep[1]
-                data["geometry"][0]["zlength"] = obj.ep[2]
-            elif obj.obj_type.lower() in MESH_IMPORT_FUNCTIONS:
-                extra_rib_filename = "extra_geo_{}".format(obj.index) + ".rib"
-                data["geometry"][0]["filename"] = extra_rib_filename
-                renderman_dir = os.path.join(self.directory, "RENDERMAN")
-                if not os.path.exists(renderman_dir):
-                    os.makedirs(renderman_dir)
-                ribarchives_dir = os.path.join(renderman_dir, "ribarchives")
-                if not os.path.exists(ribarchives_dir):
-                    os.makedirs(ribarchives_dir)
-                fout_fullpath = os.path.join(ribarchives_dir,  extra_rib_filename)
-                fout = open(fout_fullpath, "w")
-                self.export_mesh(self.context, fout, obj)
-                fout.close()
-            else:
-                print("Geometry type {} not supported by blender export at this time".format(obj.obj_type))
-
-            if not obj.obj.hide_render:
-                renderobject.append(data)
+                if not obj.obj.hide_render:
+                    renderobject.append(data)
 
         return renderobject
 
@@ -777,8 +798,8 @@ class ExportChronoRender(bpy.types.Operator):
         #The Rest#
         ##########
 
-        renderobject = self.write_object(objects, is_proxy = False)
-        renderobject += self.write_object(proxyObjects, is_proxy = True)
+        renderobject = self.write_objects(objects, is_proxy = False)
+        renderobject += self.write_objects(proxyObjects, is_proxy = True)
 
         #Imported meshes
         fout_extrageo = open(os.path.join(self.fout_dir, "extrageometry.rib"), "w")
