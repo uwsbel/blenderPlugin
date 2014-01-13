@@ -5,6 +5,11 @@ import os
 import yaml
 import tarfile
 import shutil
+
+#TODO: many particles? IOError io.read()
+# check small_test (done correctly) and full_test (running with all particles)
+
+#TODO: all objects have a different radius. Make work.
 #TODO: shader selection inside blender?
 
 #TODO: walltime for one frame instead of for the whole big render?
@@ -32,7 +37,12 @@ import shutil
 
 #TODO: get intensities right!
 
-#TODO: shadows for moving camera
+#TODO: shadows for moving camera. Done?
+
+#TODO: indicate boundaries of sim particles so you can easily place camera
+
+#TODO: fix the massive if statements passed around. Or just kill the threading?
+#could require all objs in same group have contiguous ids?
 
 #urls:
 #http://euler.wacc.wisc.edu/~felipegb94/input/data.tar.gz
@@ -198,7 +208,7 @@ class Object:
         #object.get("index") to get the value
         #object["index"] doesn't work?
 
-        #TODO: it is taking the obj2 as active_object and then relabling it here
+        #TODO: it is taking the obj2 as active_object and then relabling it here. Fixed?
 
     def update(self):
         """Grabs stuff like color, texture and stores them"""
@@ -320,7 +330,7 @@ class ImportChronoRender(bpy.types.Operator):
             fin_frame = fin_frame.replace("data_", "")
             fin_frame = int(fin_frame)
         except:
-            print("Failed to automatically get the framerange from the file")
+            print("Failed to automatically get the framerange from the file. You will likely need to set it manually.")
         
         filepath = os.path.join(self.directory, self.filename)
         fin_dir = self.directory
@@ -328,6 +338,7 @@ class ImportChronoRender(bpy.types.Operator):
         fin = open(filepath, "r")
 
         for i, line in enumerate(fin):
+            index = line.split(",")[1]
             # if line.split(",")[9].lower() == "extrageometry":
                 # extra_geometry_indicies.append(line.split(",")[1])
             # if line.split(",")[9].lower() in MESH_IMPORT_FUNCTIONS:
@@ -336,18 +347,18 @@ class ImportChronoRender(bpy.types.Operator):
             self.process_max_dimensions(line.split(","))
             if line.split(",")[0].lower() == "individual":
                 objects.append(Object(line.split(","), self.directory))
-                print("Object {}".format(i))
+                print("Object {}".format(index))
 
             else:
                 data = line.split(",")
                 proxyExists = False
                 for obj in proxyObjects:
                     if obj.group == data[0]:
-                        obj.indicies.append(i+1)
+                        obj.indicies.append(index)
                         proxyExists = True
                 if not proxyExists:
-                    print("New Proxy line num {}".format(i))
-                    proxyObjects.append(ProxyObject(data, self.directory, [i+1]))
+                    print("New Proxy obj num {}".format(index))
+                    proxyObjects.append(ProxyObject(data, self.directory, [index]))
 
         configInitialScene(fin_frame)
 
@@ -381,13 +392,17 @@ class ExportChronoRender(bpy.types.Operator):
 
     def construct_condition(self, indicies):
         """docstring for construct_condition"""
+        #Very simple way
         rtnd = "id == "
         if len(indicies) <= 0:
             raise Exception("No indicies in this proxy object")
         for i in indicies:
             rtnd += str(i) + " or id == "
+        rtnd = rtnd[:-10] # -10 to remove the trailing "or id =="
 
-        return rtnd[:-10] #-10 t remove the trailing or id ==
+        # Group by ranges
+
+        return rtnd
 
     def export_mesh(self, context, fout, obj):
         #TODO: don't use just one file for the whole animation. One per frame. (per obj also?)
@@ -428,9 +443,10 @@ class ExportChronoRender(bpy.types.Operator):
                 data["condition"] = self.construct_condition(obj.indicies)
 
             else:
-                maxIndex = obj.index
-                minIndex = obj.index
-                data["condition"] = "id >= {} and id <= {}".format(minIndex, maxIndex)
+                data["condition"] = "id == {}".format(obj.index)
+                # maxIndex = obj.index
+                # minIndex = obj.index
+                # data["condition"] = "id >= {} and id <= {}".format(minIndex, maxIndex)
 
             data["color"] = color
             if obj.obj_type in MESH_IMPORT_FUNCTIONS:
@@ -674,15 +690,34 @@ class ExportChronoRender(bpy.types.Operator):
         current_frame = bpy.context.scene.frame_current
         fmax = bpy.data.scenes["Scene"].frame_end
         fmin = 0
+        camera_moved = False
+        last_camera_output = None
         for frame in range(fmin, fmax+1):
             bpy.context.scene.frame_set(frame)
             cam_file_name = "custom_camera_{}.rib".format(frame)
             cam_file_path = os.path.join(self.fout_dir, cam_file_name)
             cam_file = open(cam_file_path, 'w')
-            cam_file.write(self.camera_to_renderman(context, bpy.data.objects['Camera']))
+
+            camera_output = self.camera_to_renderman(context, bpy.data.objects['Camera'])
+            if last_camera_output == None:
+                last_camera_output = camera_output
+            if camera_output != last_camera_output:
+                camrea_moved = True
+
+            cam_file.write(camera_output)
+            #TODO: only write the file if camera hasn't moved at all (would have to fix the one camera or indididual camera frames thing)
 
             cam_file.close()
 
+            if not camera_moved and frame == fmax:
+                cam_file_name = "custom_camera.rib"
+                cam_file_path = os.path.join(self.fout_dir, cam_file_name)
+                cam_file = open(cam_file_path, 'w')
+                cam_file.write(camera_output)
+                cam_file.close()
+
+
+        moving_camera = {"moving_camera" : camera_moved}
         cam_file_name = "custom_camera.rib"
         bpy.context.scene.frame_current = current_frame
         #############
@@ -770,7 +805,7 @@ class ExportChronoRender(bpy.types.Operator):
 
         data = {"chronorender" : {
                     "rendersettings" : {"searchpaths" : "./"},
-                    "camera" : [{"filename" : cam_file_name}],
+                    "camera" : [{"filename" : cam_file_name}, moving_camera],
                     "lighting" : [{"filename" : "custom_lighting.rib"}],
                     # "scene" : [{"filename" : "default_scene.rib"}],
                     "renderpass" : renderpasses ,
