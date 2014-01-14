@@ -68,6 +68,7 @@ MESH_IMPORT_FUNCTIONS = {"obj": bpy.ops.import_scene.obj,
 fin = ""
 objects = ""
 proxyObjects = ""
+changing_params = False
 max_dim = 1
 min_dim = 1
 
@@ -236,6 +237,18 @@ class ProxyObject(Object):
         self.color = DEFAULT_COLOR
         self.material.name = "Group {}'s material".format(self.group)
 
+    def same_params(self, data):
+
+        other_ep = []
+        for x in range(10,len(data)):
+            if data[x] is not '\n':
+                try:
+                    other_ep.append(float(data[x]))
+                except ValueError:
+                    other_ep.append(data[x].strip("\n"))
+
+        return other_ep == self.ep
+
     def addToBlender(self):
         # print(self.ep)
         bpy.ops.mesh.primitive_monkey_add(radius=self.ep[0], location=(self.x, self.y, self.z))
@@ -313,6 +326,7 @@ class ImportChronoRender(bpy.types.Operator):
         global fin_name
         global objects
         global proxyObjects
+        global changing_params
         global ambient_proxy
         global extra_geometry_indicies
         global fin_dir
@@ -355,6 +369,9 @@ class ImportChronoRender(bpy.types.Operator):
                 for obj in proxyObjects:
                     if obj.group == data[0]:
                         obj.indicies.append(index)
+                        if not changing_params and not obj.same_params(data):
+                            changing_params = True
+
                         proxyExists = True
                 if not proxyExists:
                     print("New Proxy obj num {}".format(index))
@@ -428,6 +445,7 @@ class ExportChronoRender(bpy.types.Operator):
             # fout.write('AttributeEnd\n')
 
     def write_object(self, objects, is_proxy=False):
+        global changing_params
         renderobject = []
         for obj in objects:
             obj.update()
@@ -454,6 +472,7 @@ class ExportChronoRender(bpy.types.Operator):
             else:
                 data["geometry"] = [{"type" : obj.obj_type}]
             data["shader"] = [{"name" : "matte.sl"}] #TODO: not hardcoded
+            data["geometry"][0]["changingprams"] = changing_params
             
             if obj.obj_type.lower() == "sphere":
                 data["geometry"][0]["radius"] = obj.ep[0]
@@ -827,24 +846,11 @@ class ExportChronoRender(bpy.types.Operator):
                                     ["quat_y", "float"],
                                     ["quat_z", "float"],
                                     ["ignore", "string"], #object type
-                                    ["ignore", "string"], #extra params
-                                    ["ignore", "string"], #any reasonable input will work
-                                    ["ignore", "string"],
-                                    ["ignore", "string"],
-                                    ["ignore", "string"],
-                                    ["ignore", "string"],
-                                    ["ignore", "string"],
-                                    ["ignore", "string"],
-                                    ["ignore", "string"],
-                                    ["ignore", "string"],
-                                    ["ignore", "string"],
-                                    ["ignore", "string"],
-                                    ["ignore", "string"],
-                                    ["ignore", "string"],
-                                    ["ignore", "string"],
-                                    ["ignore", "string"],
-                                    ["ignore", "string"],
-                                    ["ignore", "string"]]}]},
+                                    ["ep1", "string"], #extra params
+                                    ["ep2", "string"], #need to modify if more than 4 extra params
+                                    ["ep3", "string"],
+                                    ["ep4", "string"],
+                                    ]}]},
                             "renderobject" : renderobject}}}
                             # [{
                             #     "name" : "particle",
