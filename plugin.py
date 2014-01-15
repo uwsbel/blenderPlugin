@@ -44,6 +44,8 @@ import shutil
 #TODO: fix the massive if statements passed around. Or just kill the threading?
 #could require all objs in same group have contiguous ids?
 
+#TODO: proxy objects that better represent the dimensions?
+
 #urls:
 #http://euler.wacc.wisc.edu/~felipegb94/input/data.tar.gz
 #http://euler.wacc.wisc.edu/~felipegb94/input/out.tar.gz
@@ -418,8 +420,27 @@ class ExportChronoRender(bpy.types.Operator):
         rtnd = rtnd[:-10] # -10 to remove the trailing "or id =="
 
         # Group by ranges
+        rtn = ""
+        max_elem = None
+        min_elem = None
+        for i in indicies:
+            i = int(i)
+            if min_elem == None:
+                min_elem = i
+            if max_elem == None:
+                max_elem = i
 
-        return rtnd
+            if i == max_elem + 1:
+                max_elem = i
+            elif i > max_elem + 1:
+               rtn += " or ({} <= id <= {})".format(min_elem, max_elem)
+               min_elem = i
+               max_elem = i
+
+        rtn += " or ({} <= id <= {})".format(min_elem, max_elem)
+        rtn = rtn[4:]
+
+        return min(rtnd, rtn)
 
     def export_mesh(self, context, fout, obj):
         #TODO: don't use just one file for the whole animation. One per frame. (per obj also?)
