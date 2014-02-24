@@ -4,7 +4,7 @@
 blender-plugin-tutorial.odt file. It tells how to install the plugin, and goes 
 through a in-depth tutorial of all of the features available*
 
-Requirements: blender 2.6x, python3, and pyyaml should all be installed on 
+Requirements: blender 2.67+, python3, and pyyaml should all be installed on 
     the machine from which you will be running blender.
 
 The Easy Way (for those with access to euler):
