@@ -4,7 +4,7 @@
 blender-plugin-tutorial.odt file. It tells how to install the plugin, and goes 
 through a in-depth tutorial of all of the features available*
 
-Requirements: blender 2.6x, python3, and pyyaml should all be installed on 
+Requirements: blender 2.67+, python3, and pyyaml should all be installed on 
     the machine from which you will be running blender.
 
 The Easy Way (for those with access to euler):
@@ -62,21 +62,20 @@ In addition to colors, you can select the camera's position, rotation, and focal
     
 When done, click file->export->Exports chron render file and select where to
     export it to and name the file out.yaml
+ 
+You will now have two files, out.tar.gz and data.tar.gz. In order to run your render on the cluster simply
+run
 
-*TODO: Out of date information on how to render. Process undergoing changes*
-    -the files needed still exist but are now packaged into two archives instead
-    of as individual files like the rest of the README claims.
+    /path/to/chrono/render/scripts/crender_auto.py -r prman -o /path/to/out.tar.gz -d /path/to/data.tar.gz
+    
+Parameters for this script can be gotten with --help or -h
 
-Now you have 2 new files, the output file that you specified, and a file in
-    the same directory called custom_camera.rib. 
+This will extract and begin your render. Upon completion your images will be located in out/RENDERMAN/job/images
+ 
+If you wish to re-render you can either delete the created directory and run the script again or follow the instructions
+below (more complicated and should be avoided).
 
-Somewhere on euler, run:
-    /path/to/blender-plugin/scripts/crender.py init
-
-This creates a RENDERMAN directory. Now put the .yaml file you 
-exported from blender, and the custom_camera.rib file inside this directory.
-Put all of your data files inside the RENDERMAN/job/data directory
-
+*Instructions for rendering AFTER files have all been propperly extracted follow:*
 
 go into the RENDERMAN directory and run:
     /path/to/blender-plugin/scripts/crender.py update
