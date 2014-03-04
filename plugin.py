@@ -6,10 +6,13 @@ import yaml
 import tarfile
 import shutil
 
+#TODO: names other than out.yaml
+#TODO: do we zip up all files in that dir? we shouldn't.
+#TODO: use any frame of data for import instead of just the last one
+
 #TODO: many particles? IOError io.read()
 # check small_test (done correctly) and full_test (running with all particles)
 
-#TODO: all objects have a different radius. Make work.
 #TODO: shader selection inside blender?
 
 #TODO: walltime for one frame instead of for the whole big render?
@@ -45,6 +48,7 @@ import shutil
 #could require all objs in same group have contiguous ids?
 
 #TODO: proxy objects that better represent the dimensions?
+#TODO: background colors
 
 #urls:
 #http://euler.wacc.wisc.edu/~felipegb94/input/data.tar.gz
@@ -705,8 +709,6 @@ class ExportChronoRender(bpy.types.Operator):
         renderpasses.append(shadowpass)
 
     def execute(self, context):
-        #TODO: get objects and proxyobject properties from blender
-        # into the yaml file
         global fin_name
         global objects
         global proxyObjects
@@ -856,7 +858,6 @@ class ExportChronoRender(bpy.types.Operator):
                                 "name" : "defaultdata",
                                 "resource" : data_name,
                                 "fields" : [
-                                    #TODO: ugly hack for ignores
                                     ["group", "string"],
                                     ["id", "integer"],
                                     ["pos_x", "float"],
@@ -889,6 +890,9 @@ class ExportChronoRender(bpy.types.Operator):
         print("Compression beginning")
         self.compress(fin_name, fin_dir, self.filename, self.fout_dir)
         print("Compression finished")
+        print("Cleanup Beginning")
+        shutil.rmtree(self.fout_dir)
+        print("Cleanup Ended")
         return {'FINISHED'}
 
     def move_ribs(self, fout_dir):
@@ -909,12 +913,15 @@ class ExportChronoRender(bpy.types.Operator):
     def compress(self, fin_name, fin_dir, fout_name, fout_dir, force_data=False):
         #TODO: allow user to select force_data
         #requires a SEPARATE data directory to work
-        #TODO: put all extra .rib files in the ribarchives dir so they can be used
         data_zipped_path = os.path.join(self.directory, "data.tar.gz")
         metadata_zipped_path = os.path.join(self.directory, fout_name.split(".")[0] + ".tar.gz")
         if not os.path.exists(data_zipped_path) or force_data == True:
             with tarfile.open(data_zipped_path, "w:gz") as tar:
-                tar.add(fin_dir, arcname="job/data")
+                for filename in os.listdir(fin_dir):
+                    if filename[-4:] == ".dat":
+                        filepath = os.path.join(fin_dir, filename)
+                        aname = os.path.join(os.path.join("job", "data"), filename)
+                        tar.add(filepath, arcname=aname)
         with tarfile.open(metadata_zipped_path, "w:gz") as tar2:
             tar2.add(fout_dir, arcname="")
 
