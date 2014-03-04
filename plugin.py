@@ -7,7 +7,6 @@ import tarfile
 import shutil
 
 #TODO: names other than out.yaml
-#TODO: do we zip up all files in that dir? we shouldn't.
 #TODO: use any frame of data for import instead of just the last one
 
 #TODO: many particles? IOError io.read()
@@ -714,6 +713,10 @@ class ExportChronoRender(bpy.types.Operator):
         global proxyObjects
         global ambient_proxy
         global fin_dir
+
+        #We will ignore the user given output file Chrono::Render is designed
+        #to accept out.yaml as the yaml file
+        self.filename = "out.yaml"
 
         renderpasses = [] 
 
