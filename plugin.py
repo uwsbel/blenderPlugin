@@ -5,6 +5,7 @@ import os
 import yaml
 import tarfile
 import shutil
+import stat
 
 #TODO: names other than out.yaml
 #TODO: use any frame of data for import instead of just the last one
@@ -894,9 +895,16 @@ class ExportChronoRender(bpy.types.Operator):
         self.compress(fin_name, fin_dir, self.filename, self.fout_dir)
         print("Compression finished")
         print("Cleanup Beginning")
-        shutil.rmtree(self.fout_dir)
+        self.cleanup(self.fout_dir)
         print("Cleanup Ended")
         return {'FINISHED'}
+
+    def cleanup(self, fout_dir):
+        shutil.rmtree(fout_dir, onerror=self.iferror)
+
+    def iferror(self, func, path, except_info):
+        os.chmod(path, stat.S_IWRITE)
+        func(path)
 
     def move_ribs(self, fout_dir):
         """Moves all rib files to the ribarchive directory"""
@@ -909,7 +917,7 @@ class ExportChronoRender(bpy.types.Operator):
         for f in os.listdir("."):
             if f.endswith(".rib"):
                 dest = os.path.join(ribarchives, os.path.basename(f))
-                shutil.copy(f, dest)
+                shutil.copy2(f, dest)
 
         os.chdir(init_dir)
 
