@@ -179,10 +179,13 @@ See FileFormat.txt
 -Selectively choose which objects to render
 
 **What this plugin does NOT do (currently)**
+
 -allow you to move, rotate, or size the objects. You can do this in blender but if
     you render with renderman your changes will NOT be applied. (Camera 
     location however, WILL be changed if you move it. ctrl-alt-0 is nice for 
     snapping the camera to your view point)
+    
 -allow you to save your changes partway through. You must import the file,
     apply materials and colors, and export it in ONE blender session.
+    
 -a full render with blender's "render" button.
