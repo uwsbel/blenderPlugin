@@ -13,7 +13,7 @@ Note: this is written assuming you will run blender on a local machine
 and then render on euler.
 
 1. Clone the Chrono::Render repo by running 
-    hg clone https://daphron@bitbucket.org/daphron/blender-plugin 
+    git clone https://github.com/uwsbel/ChronoRender
 
     from somewhere on euler.
 

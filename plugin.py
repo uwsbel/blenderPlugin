@@ -7,11 +7,10 @@ import tarfile
 import shutil
 import stat
 
-#TODO: names other than out.yaml
-#TODO: use any frame of data for import instead of just the last one
+#TODO: MUST DO BEFORE WEB INTERFACE LIVE. Deal with the python scripts called
+# from the yaml file! 
 
-#TODO: many particles? IOError io.read()
-# check small_test (done correctly) and full_test (running with all particles)
+#TODO: windows doesn't remove the renderman directory? Need to test the fix.
 
 #TODO: shader selection inside blender?
 
@@ -49,6 +48,7 @@ import stat
 
 #TODO: proxy objects that better represent the dimensions?
 #TODO: background colors
+#http://renderman.pixar.com/view/a-rib-file-line-by-line
 
 #urls:
 #http://euler.wacc.wisc.edu/~felipegb94/input/data.tar.gz
@@ -58,7 +58,7 @@ bl_info = {
         "description": "Allows for easy graphical manipulation of simulated data before rendering with a powerful renderman renderer",
         "author": "Daniel <Daphron> Kaczmarek",
         "version": (0, 9),
-        "blender": (2, 67, 1), #TODO: find minimum version
+        "blender": (2, 67, 1), 
         "location": "File > Import > Import Chrono::Engine",
         "warning": "",
         "wiki_url": "TODO",

@@ -4,7 +4,7 @@ General Notes:
     All values should be separated by commas and there should be no 
     space characters anywhere in the file.
 
-Each data file represents one frame of a simulation. Filenames must end in
+Each data file represents one frame of a simulation. Filenames MUST end in
     _#.dat and should contain leading zeros.
     Ex. mydata_000.dat, mydata_001.dat, mydata_002.dat ... mydata_099.dat, mydata_100.dat
 
@@ -21,11 +21,8 @@ visibile in blender and materials will have to be applied to each object
 seperately.
     Note: Group names should be completely lowercase. No distinction will
         be made between different cased group names.
-    Note: All members of a group MUST have the same object_type and parameters
-        for that object (e.g. all spheres have same radius). Locations and 
-        rotations may be different.
 
-Object ID: a number that will identify each unique object
+Object ID: a unique number that will identify each unique object
 
 x_pos, y_pos, z_pos: x,y,z coorinates of the object
 
@@ -43,9 +40,9 @@ extra_params: Any other parameters needed to define the shape of the
         an object_type of "cube" would require one extra parameter for 
 			the HALF of the side length
         an object_type of "cylinder" requires 2 additional params, 
-			the radius, and the hight.
+			the radius, and the half-height.
         an object_type of "cone" requires 2 additional params,
-            the radius and the height
+            the radius and the half-height
 
 EXAMPLE: example_0.dat
 //////////////////////////////////////////////////////////////////////////////
@@ -70,45 +67,23 @@ by proxy objects.
     sphere              radius
     cube                half_side_length
     ellipsoid           a,b,c  (semi-principle axis)
-    cylinder            radius, half_height TODO: half height cylinder and cone renderman
+    cylinder            radius, half_height
     cone                radius, half_height
     box                 half_xlength, half_ylength, half_zlength
-    extrageometry       filename        #DEPRECIATED
     obj                 filename
     stl                 filename        #Experimental
     ply                 filename        #Experimental
 -All supported primitive objects are NOT the same as their renderman counterparts.
     Supported objects have all sides closed so the top and bottom of a
     cylinder will not be open. 
--Note that extrageometry is depreciated. Any non-primitives should be added
-    as obj meshes instead. (There is experimental support for stl and ply files
-    as well)
 
-Importing obj files:
+**Importing obj files:**
 To import an obj file you only need to put the filename of the obj file as the
-    "filename" parameter. Currently the obj file may only be ONE object, if it 
+    "filename" parameter. The obj file may only be ONE object, if it 
     is composed of multiple "groups" or "objects" it will be turned into one single 
     object in blender. Material files are NOT used for the export to Chrono::Render 
     despite various materials being created in blender. The only one used is 
     "Object #'s material".  
-
-#DEPRECIATED
-///////////////////////////////////////////////////////////////////////////////
-extrageometry is a special type that you may put in your yaml file if you wish
-to add geometry while in blender. This includes importing of meshes in any blender
-supported format. To enable this adding of geometry, add this line to the end 
-of ALL data files that you want the object in.
-    individual,id#,0,0,0,0,0,0,0,extrageometry,extrageometry.rib,
-
-    in place of id# put a unique number.
-
-    extrageometry types may be animated by changing the x,y,z values in the
-    data files. Location 0,0,0 in the data file is wherever you place your
-    extra geometry in blender and everything else is relative to THAT position,
-    NOT the actual origin blender shows.
-
-    Also, currently there is no way to use multiple extrageometry archives.
-///////////////////////////////////////////////////////////////////////////////
 
 Possible extensions to the file format:
 -density, pressure, velocity for simulations that need them could 
