@@ -6,21 +6,21 @@ through a in-depth tutorial of all of the features available*
 
 Requirements: blender 2.67+, python3, and pyyaml should all be installed on 
     the machine from which you will be running blender.
-
-The Easy Way (for those with access to euler):
     
 Note: this is written assuming you will run blender on a local machine
-and then render on euler.
+and then render on on an external machine.
 
 1. Clone the Chrono::Render repo by running 
     git clone https://github.com/uwsbel/ChronoRender
 
-    from somewhere on euler.
+    from somewhere on the machine you wish to render on.
 
 This contains all the files needed to take the exported data from blender 
 and create a nice render from it.
 
-2. Copy the file plugin.py from euler to your local machine's blender
+2. Clone this blenderPLugin repo onto your local machine
+3. 
+3. Copy the file plugin.py from the repo to your local machine's blender
     addons folder by using the following command (execute on local machine)
 
     scp username@euler.msvc.wisc.edu:/path/to/blender-plugin/plugins/blender/plugin.py
@@ -63,7 +63,7 @@ In addition to colors, you can select the camera's position, rotation, and focal
 When done, click file->export->Exports chron render file and select where to
     export it to and name the file out.yaml
  
-You will now have two files, out.tar.gz and data.tar.gz. In order to run your render on the cluster simply
+You will now have two files, out.tar.gz and data.tar.gz. In order to run your render on the cluster, upload the two tar.gz files to the rendering cluster and simply
 run
 
     /path/to/chrono/render/scripts/crender_auto.py -r prman -o /path/to/out.tar.gz -d /path/to/data.tar.gz
