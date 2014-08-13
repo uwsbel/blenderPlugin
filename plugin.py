@@ -1,3 +1,10 @@
+/*******************************************************
+* Copyright (C) 2013-2014 Daniel Kaczmarek <dankaczma@gmail.com>, Simulation Based Engineering Lab <sbel.wisc.edu>
+* Some rights reserved. See LICENSE
+* Use of this source code is governed by a BSD-style license that can be 
+* found in the LICENSE file at the top level of the distribution as well
+* as well as at https://github.com/uwsbel/blenderPlugin/blob/master/LICENSE
+*******************************************************/
 import bpy
 import math
 import mathutils
@@ -7,52 +14,6 @@ import tarfile
 import shutil
 import stat
 
-#TODO: MUST DO BEFORE WEB INTERFACE LIVE. Deal with the python scripts called
-# from the yaml file! 
-
-#TODO: windows doesn't remove the renderman directory? Need to test the fix.
-
-#TODO: shader selection inside blender?
-
-#TODO: walltime for one frame instead of for the whole big render?
-
-#TODO:
-#currently using rough heuristics for ScreenWindow (sun shadows) and light intensity. Improve
-#currently using NO user input for ao and color bleeding quality parameters!
-
-#TODO: Why is renderman's window larger than blender's for rendering
-#some of the files (the sensor size maybe?)
-
-#TODO: PERFORMANCE:
-#   clipping panes
-#   spots instead of points if doable#
-#   multicore stuff (share shadowmaps, etc)
-#    renderman multiple cores (qsub vs -p:16) vs renderman one instance per core
-#   a way to remove background images from shadowpass 
-#   use DelayedReadArchive instead of ReadArchive for obj and other junk
-
-#Resolution and shading rate affect time and quality of render
-
-#TODO: for server-side, are tarbombs a problem?
-
-#TODO: the fov for simple shots is way off. Why?
-
-#TODO: get intensities right!
-
-#TODO: shadows for moving camera. Done?
-
-#TODO: indicate boundaries of sim particles so you can easily place camera
-
-#TODO: fix the massive if statements passed around. Or just kill the threading?
-#could require all objs in same group have contiguous ids?
-
-#TODO: proxy objects that better represent the dimensions?
-#TODO: background colors
-#http://renderman.pixar.com/view/a-rib-file-line-by-line
-
-#urls:
-#http://euler.wacc.wisc.edu/~felipegb94/input/data.tar.gz
-#http://euler.wacc.wisc.edu/~felipegb94/input/out.tar.gz
 bl_info = {
         "name": "Chrono::Render plugin",
         "description": "Allows for easy graphical manipulation of simulated data before rendering with a powerful renderman renderer",
