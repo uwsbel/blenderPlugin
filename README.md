@@ -18,8 +18,7 @@ and then render on on an external machine.
 This contains all the files needed to take the exported data from blender 
 and create a nice render from it.
 
-2. Clone this blenderPLugin repo onto your local machine
-3. 
+2. Clone this repo onto your local machine
 3. Copy the file plugin.py from the repo to your local machine's blender
     addons folder by using the following command (execute on local machine)
 
@@ -33,7 +32,7 @@ and create a nice render from it.
     Windows7:
     C:\Users\%username%\AppData\Roaming\Blender Foundation\Blender\2.6x\scripts\addons
 
-3. Open up blender.
+4. Open up blender.
     Click on File->User Preferences->Addons 
     Then scroll down until you see "Import-Export: Chrono::Render plugin"
     Click the check box on the right side
